@@ -23,7 +23,7 @@ int main()
 {
     //Lexer lexer("(1.3f + 2.6) * (3.8 + 5.2f) / ((5 + 3.0f) * 2)");
     //Lexer lexer(R"(var a = 10; var b = 5; print(121, " ", "Hello World"))");
-    Lexer lexer(LoadCode("../code.wl"));
+    Lexer lexer(LoadCode("../code.wrd"));
     Parser parser(lexer);
 
     if(const auto result = parser.GetRoot()->Evaluate(symbolTable))

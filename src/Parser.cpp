@@ -18,6 +18,16 @@ Parser::Parser(Lexer& lexer)
             return nullptr;
         });
 
+    symbolTable["println"] =
+        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args) -> ValuePtr
+        {
+            for(const auto& arg : args)
+                if(arg)
+                    std::visit([](auto&& v) { std::println("{}", v); }, *arg);
+
+            return nullptr;
+        });
+
     NextToken();
 
     std::vector<ExprPtr> statements;
