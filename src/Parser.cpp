@@ -75,7 +75,7 @@ ExprPtr Parser::ParsePrimary()
         return expr;
     }
 
-    default: break;
+    default: return ParseUnary();
     }
 
     return nullptr;
@@ -102,6 +102,16 @@ ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
             operation, std::move(left), std::move(right)
         );
     }
+}
+
+ExprPtr Parser::ParseUnary()
+{
+    auto operation = currentToken;
+    NextToken();
+
+    auto expr = ParsePrimary();
+
+    return std::make_unique<UnaryExpr>(operation, std::move(expr));
 }
 
 ExprPtr Parser::ParseReserved()

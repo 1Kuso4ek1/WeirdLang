@@ -1,14 +1,1 @@
-var a = 10;
-
-fun b(var c, var d) {
-    a += c;
-    println(a, c, d);
-}
-
-fun c() ->
-    println("Single expression");
-
-b(50, 20);
-c();
-
-println("Hello World");
+println(!true)

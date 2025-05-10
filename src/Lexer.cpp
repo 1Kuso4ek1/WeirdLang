@@ -90,6 +90,9 @@ Lexer::Token Lexer::ProcessOperator(const StringIter& iter)
     if(operatorTokensMap.contains(*iter))
     {
         auto currentOp = operatorTokensMap.at(*iter);
+        if(tokens.empty())
+            return currentOp;
+
         auto prevOp = tokens.back();
 
         if(prevOp.first != TokenType::String && prevOp.second.size() == 1)

@@ -31,7 +31,7 @@ using FunctionTable = std::unordered_map<std::string, FunctionType>;
 
 struct UndefinedExpr final : ExprNode
 {
-    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
     {
         throw std::runtime_error("Evaluation of an undefined expression");
     }
@@ -73,7 +73,14 @@ struct Scope
     SymbolTable symbols;
 };
 
+using ScopePtr = std::shared_ptr<Scope>;
+
 inline auto globalScope = std::make_shared<Scope>();
+
+inline Value operator-(const Value& val)
+{
+    return std::visit([](auto&& v) -> Value { return -v;  }, val);
+}
 
 inline Value operator+(const Value& left, const Value& right)
 {
@@ -95,13 +102,143 @@ inline Value operator/(const Value& left, const Value& right)
     return std::visit([](auto&& l, auto&& r) -> Value { return l / r; }, left, right);
 }
 
+inline Value operator%(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_same_v<std::decay_t<decltype(l)>, int>
+                    && std::is_same_v<std::decay_t<decltype(r)>, int>)
+            return l % r;
+        return 0;
+    }, left, right);
+}
+
+inline Value operator!(const Value& val)
+{
+    return std::visit([](auto&& v) -> Value
+    {
+        if constexpr (std::is_same_v<std::decay_t<decltype(v)>, bool>)
+            return !v;
+        return false;
+    }, val);
+}
+
+inline Value operator&(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_integral_v<std::decay_t<decltype(l)>>
+                    && std::is_integral_v<std::decay_t<decltype(r)>>)
+            return l & r;
+        return 0;
+    }, left, right);
+}
+
+inline Value operator|(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_integral_v<std::decay_t<decltype(l)>>
+                    && std::is_integral_v<std::decay_t<decltype(r)>>)
+            return l | r;
+        return 0;
+    }, left, right);
+}
+
+inline Value operator^(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_integral_v<std::decay_t<decltype(l)>>
+                    && std::is_integral_v<std::decay_t<decltype(r)>>)
+            return l ^ r;
+        return 0;
+    }, left, right);
+}
+
+inline Value operator&&(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_integral_v<std::decay_t<decltype(l)>>
+                    && std::is_integral_v<std::decay_t<decltype(r)>>)
+            return l && r;
+        return false;
+    }, left, right);
+}
+
+inline Value operator||(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_integral_v<std::decay_t<decltype(l)>>
+                    && std::is_integral_v<std::decay_t<decltype(r)>>)
+            return l || r;
+        return false;
+    }, left, right);
+}
+
+inline Value operator==(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value { return l == r; }, left, right);
+}
+
+inline Value operator!=(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value { return l != r; }, left, right);
+}
+
+inline Value operator<(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_arithmetic_v<std::decay_t<decltype(l)>>
+                    && std::is_arithmetic_v<std::decay_t<decltype(r)>>)
+            return l < r;
+        return false;
+    }, left, right);
+}
+
+inline Value operator>(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_arithmetic_v<std::decay_t<decltype(l)>>
+                    && std::is_arithmetic_v<std::decay_t<decltype(r)>>)
+            return l > r;
+        return false;
+    }, left, right);
+}
+
+inline Value operator<=(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_arithmetic_v<std::decay_t<decltype(l)>>
+                    && std::is_arithmetic_v<std::decay_t<decltype(r)>>)
+            return l <= r;
+        return false;
+    }, left, right);
+}
+
+inline Value operator>=(const Value& left, const Value& right)
+{
+    return std::visit([](auto&& l, auto&& r) -> Value
+    {
+        if constexpr (std::is_arithmetic_v<std::decay_t<decltype(l)>>
+                    && std::is_arithmetic_v<std::decay_t<decltype(r)>>)
+            return l >= r;
+        return false;
+    }, left, right);
+}
+
 struct ValueExpr final : ExprNode
 {
     explicit ValueExpr(const Value& value)
         : value(std::make_shared<Value>(value))
     {}
 
-    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(ScopePtr scope) override
     {
         return value;
     }
@@ -115,7 +252,7 @@ struct VariableExpr final : ExprNode
         : name(std::move(name))
     {}
 
-    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(const ScopePtr scope) override
     {
         if(scope->Contains(name))
             return scope->Get(name)->Evaluate(scope);
@@ -127,11 +264,11 @@ struct VariableExpr final : ExprNode
 
 struct VariableDecl final : ExprNode
 {
-    VariableDecl(const std::string& name, ExprPtr value)
-        : name(name), value(std::move(value))
+    VariableDecl(std::string name, ExprPtr value)
+        : name(std::move(name)), value(std::move(value))
     {}
 
-    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(const ScopePtr scope) override
     {
         const auto evaluated = value->Evaluate(scope);
         scope->Declare(name, std::move(value));
@@ -153,7 +290,7 @@ struct StatementList final : ExprNode
         : nativeFunc(std::move(nativeFunc))
     {}
 
-    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(const ScopePtr scope) override
     {
         if(nativeFunc)
         {
@@ -194,7 +331,7 @@ struct FunctionCall final : ExprNode
         : name(std::move(name)), args(std::move(args))
     {}
 
-    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(const ScopePtr scope) override
     {
         if(scope->Contains(name))
         {
@@ -215,13 +352,41 @@ struct FunctionCall final : ExprNode
     std::vector<ExprPtr> args;
 };
 
+struct UnaryExpr final : ExprNode
+{
+    explicit UnaryExpr(Lexer::Token token, ExprPtr expr)
+        : token(std::move(token)), expr(std::move(expr))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        auto val = expr->Evaluate(scope);
+
+        switch(token.first)
+        {
+        case Lexer::TokenType::Plus: return val;
+        case Lexer::TokenType::Minus: return std::make_shared<Value>(-*val);
+        case Lexer::TokenType::Not: return std::make_shared<Value>(!*val);
+        case Lexer::TokenType::Increment: *val = *val + 1; return val;
+        case Lexer::TokenType::Decrement: *val = *val - 1; return val;
+        default: break;
+        }
+
+        return std::make_shared<Value>(0);
+    }
+
+    Lexer::Token token;
+
+    ExprPtr expr;
+};
+
 struct BinaryExpr final : ExprNode
 {
     BinaryExpr(Lexer::Token token, std::unique_ptr<ExprNode> left, std::unique_ptr<ExprNode> right)
         : token(std::move(token)), left(std::move(left)), right(std::move(right))
     {}
 
-    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(const ScopePtr scope) override
     {
         auto lval = left->Evaluate(scope);
         const auto rval = right->Evaluate(scope);
@@ -233,10 +398,26 @@ struct BinaryExpr final : ExprNode
         case Lexer::TokenType::SubAssign: *lval = *lval - *rval; return lval;
         case Lexer::TokenType::MulAssign: *lval = *lval * *rval; return lval;
         case Lexer::TokenType::DivAssign: *lval = *lval / *rval; return lval;
+        case Lexer::TokenType::ModAssign: *lval = *lval % *rval; return lval;
+        case Lexer::TokenType::BitwiseAndAssign: *lval = *lval & *rval; return lval;
+        case Lexer::TokenType::BitwiseOrAssign: *lval = *lval | *rval; return lval;
+        case Lexer::TokenType::BitwiseXorAssign: *lval = *lval ^ *rval; return lval;
         case Lexer::TokenType::Plus: return std::make_shared<Value>(*lval + *rval);
         case Lexer::TokenType::Minus: return std::make_shared<Value>(*lval - *rval);
         case Lexer::TokenType::Multiply: return std::make_shared<Value>(*lval * *rval);
         case Lexer::TokenType::Divide: return std::make_shared<Value>(*lval / *rval);
+        case Lexer::TokenType::Modulo: return std::make_shared<Value>(*lval % *rval);
+        case Lexer::TokenType::IsEqual: return std::make_shared<Value>(*lval == *rval);
+        case Lexer::TokenType::NotEqual: return std::make_shared<Value>(*lval != *rval);
+        case Lexer::TokenType::BitwiseAnd: return std::make_shared<Value>(*lval & *rval);
+        case Lexer::TokenType::BitwiseOr: return std::make_shared<Value>(*lval | *rval);
+        case Lexer::TokenType::BitwiseXor: return std::make_shared<Value>(*lval ^ *rval);
+        case Lexer::TokenType::And: return std::make_shared<Value>(*lval && *rval);
+        case Lexer::TokenType::Or: return std::make_shared<Value>(*lval || *rval);
+        case Lexer::TokenType::Less: return std::make_shared<Value>(*lval < *rval);
+        case Lexer::TokenType::Greater: return std::make_shared<Value>(*lval > *rval);
+        case Lexer::TokenType::LessEqual: return std::make_shared<Value>(*lval <= *rval);
+        case Lexer::TokenType::GreaterEqual: return std::make_shared<Value>(*lval >= *rval);
         default: break;
         }
 

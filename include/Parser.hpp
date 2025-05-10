@@ -19,6 +19,7 @@ private:
 
     ExprPtr ParsePrimary();
     ExprPtr ParseBinaryRight(int leftPrec, ExprPtr left);
+    ExprPtr ParseUnary();
 
     ExprPtr ParseReserved();
     ExprPtr ParseIdentifier();
@@ -40,10 +41,17 @@ private:
         { Lexer::TokenType::SubAssign, 1 },
         { Lexer::TokenType::MulAssign, 1 },
         { Lexer::TokenType::DivAssign, 1 },
+        { Lexer::TokenType::ModAssign, 1 },
         { Lexer::TokenType::Plus, 2 },
         { Lexer::TokenType::Minus, 2 },
         { Lexer::TokenType::Multiply, 3 },
-        { Lexer::TokenType::Divide, 3 }
+        { Lexer::TokenType::Divide, 3 },
+        { Lexer::TokenType::Modulo, 3 },
+        { Lexer::TokenType::And, 3 },
+        { Lexer::TokenType::Or, 2 },
+        { Lexer::TokenType::BitwiseAnd, 3 },
+        { Lexer::TokenType::BitwiseOr, 2 },
+        { Lexer::TokenType::BitwiseXor, 2 }
     };
 
 private:
