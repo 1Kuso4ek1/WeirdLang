@@ -54,7 +54,7 @@ ExprPtr Parser::ParsePrimary()
 
     case Lexer::TokenType::Arrow:
     case Lexer::TokenType::LeftBrace:
-        return ParseStatementList();
+        return ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
 
     case Lexer::TokenType::Bool:
     {
@@ -128,7 +128,7 @@ ExprPtr Parser::ParseReserved()
         NextToken();
 
         auto args = ParseArguments();
-        const auto list = ParseStatementList();
+        const auto list = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
 
         globalScope->Declare(name, std::make_unique<StatementList>(
             std::move(dynamic_cast<StatementList*>(list.get())->statements),
@@ -141,20 +141,16 @@ ExprPtr Parser::ParseReserved()
 
 ExprPtr Parser::ParseIdentifier()
 {
-    //if(globalScope->Contains(currentToken.second))
+    auto name = currentToken.second;
+    NextToken();
+    if(currentToken.first == Lexer::TokenType::LeftParen)
     {
-        auto name = currentToken.second;
         NextToken();
-        if(currentToken.first == Lexer::TokenType::LeftParen)
-        {
-            NextToken();
-            auto args = ParseArguments();
-            return std::make_unique<FunctionCall>(std::move(name), std::move(args));
-        }
-        return std::make_unique<VariableExpr>(name);
+        auto args = ParseArguments();
+        return std::make_unique<FunctionCall>(std::move(name), std::move(args));
     }
 
-    //throw std::runtime_error("Undefined identifier");
+    return std::make_unique<VariableExpr>(name);
 }
 
 ExprPtr Parser::ParseNumber()
@@ -182,17 +178,22 @@ ExprPtr Parser::ParseString()
     return std::make_unique<ValueExpr>(value);
 }
 
-ExprPtr Parser::ParseStatementList()
+ExprPtr Parser::ParseStatementList(const bool singleExpr)
 {
     NextToken();
 
     std::vector<ExprPtr> list;
     while(currentToken.first != Lexer::TokenType::RightBrace
         && currentToken.first != Lexer::TokenType::EndOfFile)
+    {
         if(auto expr = Parse())
             list.emplace_back(std::move(expr));
+        if(singleExpr)
+            break;
+    }
 
-    Expect(Lexer::TokenType::RightBrace);
+    if(!singleExpr)
+        Expect(Lexer::TokenType::RightBrace);
 
     return std::make_unique<StatementList>(std::move(list));
 }

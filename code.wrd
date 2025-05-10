@@ -1,11 +1,14 @@
 var a = 10;
 
-fun b(var c) {
+fun b(var c, var d) {
     a += c;
-    println(a);
-    println(c);
+    println(a, c, d);
 }
 
-b(50);
+fun c() ->
+    println("Single expression");
+
+b(50, 20);
+c();
 
 println("Hello World");

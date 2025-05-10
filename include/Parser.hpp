@@ -24,7 +24,7 @@ private:
     ExprPtr ParseIdentifier();
     ExprPtr ParseNumber();
     ExprPtr ParseString();
-    ExprPtr ParseStatementList();
+    ExprPtr ParseStatementList(bool singleExpr);
 
     std::vector<ExprPtr> ParseArguments();
 
