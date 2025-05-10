@@ -3,10 +3,8 @@
 
 #include "AST.hpp"
 
-inline void CreateDefaultFunctions()
+inline void DeclareDefaultFunctions()
 {
-    /*symbolTable["print"] = std::make_unique<UndefinedExpr>();
-    symbolTable["println"] = std::make_unique<UndefinedExpr>();*/
     globalScope->Declare("print", std::make_unique<UndefinedExpr>());
     globalScope->Declare("println", std::make_unique<UndefinedExpr>());
 }

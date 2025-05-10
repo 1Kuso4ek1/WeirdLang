@@ -1,4 +1,5 @@
 #pragma once
+#include <complex>
 #include <format>
 #include <functional>
 #include <memory>
@@ -47,6 +48,11 @@ struct Scope
         symbols[name] = std::move(value);
     }
 
+    void Reset()
+    {
+        symbols.clear();
+    }
+
     ExprPtr& Get(const std::string& name)
     {
         if(symbols.contains(name))
@@ -58,7 +64,7 @@ struct Scope
         throw std::runtime_error("Symbol '" + name + "' not found");
     }
 
-    bool Contains(const std::string& name)
+    bool Contains(const std::string& name) const
     {
         return symbols.contains(name) || (parent && parent->Contains(name));
     }
@@ -109,7 +115,7 @@ struct VariableExpr final : ExprNode
         : name(std::move(name))
     {}
 
-    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
+    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
     {
         if(scope->Contains(name))
             return scope->Get(name)->Evaluate(scope);
@@ -117,6 +123,24 @@ struct VariableExpr final : ExprNode
     }
 
     std::string name;
+};
+
+struct VariableDecl final : ExprNode
+{
+    VariableDecl(const std::string& name, ExprPtr value)
+        : name(name), value(std::move(value))
+    {}
+
+    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
+    {
+        const auto evaluated = value->Evaluate(scope);
+        scope->Declare(name, std::move(value));
+
+        return evaluated;
+    }
+
+    std::string name;
+    ExprPtr value;
 };
 
 struct StatementList final : ExprNode
@@ -142,11 +166,20 @@ struct StatementList final : ExprNode
             return nativeFunc(evaluatedArgs);
         }
 
-        // TODO: Make args applicable for custom funcs
+        const auto localScope = std::make_shared<Scope>(scope);
+        for(int i = 0; i < args.size(); i++)
+        {
+            if(passedArgs.size() < i + 1)
+                throw std::runtime_error("Not enough arguments");
+
+            const auto& argName = dynamic_cast<VariableDecl*>(args[i].get())->name;
+            localScope->Declare(argName, std::move(passedArgs[i]));
+        }
+
         ValuePtr result{};
 
         for(const auto& i : statements)
-            result = i->Evaluate(scope);
+            result = i->Evaluate(localScope);
 
         return result;
     }

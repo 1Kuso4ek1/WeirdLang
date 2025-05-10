@@ -8,7 +8,7 @@
 Parser::Parser(Lexer& lexer)
     : lexer(lexer)
 {
-    CreateDefaultFunctions();
+    DeclareDefaultFunctions();
 
     NextToken();
 
@@ -121,8 +121,8 @@ ExprPtr Parser::ParseReserved()
 
         if(token == "var")
         {
-            globalScope->Declare(name, std::make_unique<ValueExpr>(0));
-            return std::make_unique<VariableExpr>(name);
+            //globalScope->Declare(name, std::make_unique<ValueExpr>(0));
+            return std::make_unique<VariableDecl>(name, std::make_unique<ValueExpr>(0));
         }
 
         NextToken();
@@ -141,7 +141,7 @@ ExprPtr Parser::ParseReserved()
 
 ExprPtr Parser::ParseIdentifier()
 {
-    if(globalScope->Contains(currentToken.second))
+    //if(globalScope->Contains(currentToken.second))
     {
         auto name = currentToken.second;
         NextToken();
@@ -154,7 +154,7 @@ ExprPtr Parser::ParseIdentifier()
         return std::make_unique<VariableExpr>(name);
     }
 
-    throw std::runtime_error("Undefined identifier");
+    //throw std::runtime_error("Undefined identifier");
 }
 
 ExprPtr Parser::ParseNumber()

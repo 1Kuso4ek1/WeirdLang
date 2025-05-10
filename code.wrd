@@ -1,10 +1,11 @@
 var a = 10;
 
-fun b() {
-    a += 20;
+fun b(var c) {
+    a += c;
     println(a);
+    println(c);
 }
 
-b();
+b(50);
 
 println("Hello World");
