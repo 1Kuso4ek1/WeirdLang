@@ -16,9 +16,11 @@ struct ASTNode
     virtual ~ASTNode() = default;
 };
 
+struct Scope;
+
 struct ExprNode : ASTNode
 {
-    virtual ValuePtr Evaluate(std::unordered_map<std::string, std::unique_ptr<ExprNode>>& symbolTable) = 0;
+    virtual ValuePtr Evaluate(std::shared_ptr<Scope>) = 0;
 };
 
 using ExprPtr = std::unique_ptr<ExprNode>;
@@ -28,13 +30,44 @@ using FunctionTable = std::unordered_map<std::string, FunctionType>;
 
 struct UndefinedExpr final : ExprNode
 {
-    ValuePtr Evaluate(SymbolTable& symbolTable) override
+    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
     {
         throw std::runtime_error("Evaluation of an undefined expression");
     }
 };
 
-inline SymbolTable symbolTable;
+struct Scope
+{
+    explicit Scope(const std::shared_ptr<Scope>& parent = {})
+        : parent(parent)
+    {}
+
+    void Declare(const std::string& name, ExprPtr value)
+    {
+        symbols[name] = std::move(value);
+    }
+
+    ExprPtr& Get(const std::string& name)
+    {
+        if(symbols.contains(name))
+            return symbols.at(name);
+
+        if(parent)
+            return parent->Get(name);
+
+        throw std::runtime_error("Symbol '" + name + "' not found");
+    }
+
+    bool Contains(const std::string& name)
+    {
+        return symbols.contains(name) || (parent && parent->Contains(name));
+    }
+
+    std::shared_ptr<Scope> parent;
+    SymbolTable symbols;
+};
+
+inline auto globalScope = std::make_shared<Scope>();
 
 inline Value operator+(const Value& left, const Value& right)
 {
@@ -62,7 +95,7 @@ struct ValueExpr final : ExprNode
         : value(std::make_shared<Value>(value))
     {}
 
-    ValuePtr Evaluate(SymbolTable& symbolTable) override
+    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
     {
         return value;
     }
@@ -76,10 +109,10 @@ struct VariableExpr final : ExprNode
         : name(std::move(name))
     {}
 
-    ValuePtr Evaluate(SymbolTable& symbolTable) override
+    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
     {
-        if(symbolTable.contains(name))
-            return symbolTable.at(name)->Evaluate(symbolTable);
+        if(scope->Contains(name))
+            return scope->Get(name)->Evaluate(scope);
         throw std::runtime_error(std::format("Symbol '{}' not found", name));
     }
 
@@ -96,7 +129,7 @@ struct StatementList final : ExprNode
         : nativeFunc(std::move(nativeFunc))
     {}
 
-    ValuePtr Evaluate(SymbolTable& symbolTable) override
+    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
     {
         if(nativeFunc)
         {
@@ -104,7 +137,7 @@ struct StatementList final : ExprNode
             evaluatedArgs.reserve(passedArgs.size());
 
             for(const auto& arg : passedArgs)
-                evaluatedArgs.push_back(arg->Evaluate(symbolTable));
+                evaluatedArgs.push_back(arg->Evaluate(scope));
 
             return nativeFunc(evaluatedArgs);
         }
@@ -113,7 +146,7 @@ struct StatementList final : ExprNode
         ValuePtr result{};
 
         for(const auto& i : statements)
-            result = i->Evaluate(symbolTable);
+            result = i->Evaluate(scope);
 
         return result;
     }
@@ -128,15 +161,15 @@ struct FunctionCall final : ExprNode
         : name(std::move(name)), args(std::move(args))
     {}
 
-    ValuePtr Evaluate(SymbolTable& symbolTable) override
+    ValuePtr Evaluate(std::shared_ptr<Scope> scope) override
     {
-        if(symbolTable.contains(name))
+        if(scope->Contains(name))
         {
-            const auto expr = symbolTable.at(name).get();
+            const auto expr = scope->Get(name).get();
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
                 cast->passedArgs = std::move(args);
-                return expr->Evaluate(symbolTable);
+                return expr->Evaluate(scope);
             }
 
             throw std::runtime_error(std::format("'{}' is not a function", name));
@@ -155,10 +188,10 @@ struct BinaryExpr final : ExprNode
         : token(std::move(token)), left(std::move(left)), right(std::move(right))
     {}
 
-    ValuePtr Evaluate(SymbolTable& symbolTable) override
+    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
     {
-        auto lval = left->Evaluate(symbolTable);
-        const auto rval = right->Evaluate(symbolTable);
+        auto lval = left->Evaluate(scope);
+        const auto rval = right->Evaluate(scope);
 
         switch(token.first)
         {

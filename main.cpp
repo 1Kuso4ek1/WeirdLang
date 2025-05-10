@@ -27,6 +27,6 @@ int main()
 
     DefineDefaultFunctions();
 
-    if(const auto result = parser.GetRoot()->Evaluate(symbolTable))
+    if(const auto result = parser.GetRoot()->Evaluate(globalScope))
         std::visit([](auto&& v) { std::println("Value: {}", v); }, *result);
 }

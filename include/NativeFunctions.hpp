@@ -5,13 +5,15 @@
 
 inline void CreateDefaultFunctions()
 {
-    symbolTable["print"] = std::make_unique<UndefinedExpr>();
-    symbolTable["println"] = std::make_unique<UndefinedExpr>();
+    /*symbolTable["print"] = std::make_unique<UndefinedExpr>();
+    symbolTable["println"] = std::make_unique<UndefinedExpr>();*/
+    globalScope->Declare("print", std::make_unique<UndefinedExpr>());
+    globalScope->Declare("println", std::make_unique<UndefinedExpr>());
 }
 
 inline void DefineDefaultFunctions()
 {
-    symbolTable["print"] =
+    globalScope->Get("print") =
         std::make_unique<StatementList>([](const std::vector<ValuePtr>& args) -> ValuePtr
         {
             for(const auto& arg : args)
@@ -21,7 +23,7 @@ inline void DefineDefaultFunctions()
             return nullptr;
         });
 
-    symbolTable["println"] =
+    globalScope->Get("println") =
         std::make_unique<StatementList>([](const std::vector<ValuePtr>& args) -> ValuePtr
         {
             for(const auto& arg : args)

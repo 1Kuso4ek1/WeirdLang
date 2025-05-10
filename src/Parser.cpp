@@ -116,12 +116,12 @@ ExprPtr Parser::ParseReserved()
         const auto name = currentToken.second;
         NextToken();
 
-        if(symbolTable.contains(name))
+        if(globalScope->Contains(name))
             throw std::runtime_error("Symbol already exists");
 
         if(token == "var")
         {
-            symbolTable[name] = std::make_unique<ValueExpr>(0);
+            globalScope->Declare(name, std::make_unique<ValueExpr>(0));
             return std::make_unique<VariableExpr>(name);
         }
 
@@ -130,10 +130,10 @@ ExprPtr Parser::ParseReserved()
         auto args = ParseArguments();
         const auto list = ParseStatementList();
 
-        symbolTable[name] = std::make_unique<StatementList>(
-            std::move(static_cast<StatementList*>(list.get())->statements),
+        globalScope->Declare(name, std::make_unique<StatementList>(
+            std::move(dynamic_cast<StatementList*>(list.get())->statements),
             std::move(args)
-        );
+        ));
 
         return nullptr;
     }
@@ -141,7 +141,7 @@ ExprPtr Parser::ParseReserved()
 
 ExprPtr Parser::ParseIdentifier()
 {
-    if(symbolTable.contains(currentToken.second))
+    if(globalScope->Contains(currentToken.second))
     {
         auto name = currentToken.second;
         NextToken();
