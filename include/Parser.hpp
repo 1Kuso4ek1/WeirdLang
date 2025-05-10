@@ -25,7 +25,10 @@ private:
     ExprPtr ParseIdentifier();
     ExprPtr ParseNumber();
     ExprPtr ParseString();
-    ExprPtr ParseStatementList(bool singleExpr);
+    ExprPtr ParseStatementList(bool singleExpr = false);
+    ExprPtr ParseVarOrFunc(const std::string& token);
+    ExprPtr ParseIf();
+    ExprPtr ParseWhile();
 
     std::vector<ExprPtr> ParseArguments();
 
@@ -48,10 +51,14 @@ private:
         { Lexer::TokenType::Divide, 3 },
         { Lexer::TokenType::Modulo, 3 },
         { Lexer::TokenType::And, 3 },
-        { Lexer::TokenType::Or, 2 },
+        { Lexer::TokenType::Or, 3 },
         { Lexer::TokenType::BitwiseAnd, 3 },
-        { Lexer::TokenType::BitwiseOr, 2 },
-        { Lexer::TokenType::BitwiseXor, 2 }
+        { Lexer::TokenType::BitwiseOr, 3 },
+        { Lexer::TokenType::BitwiseXor, 3 },
+        { Lexer::TokenType::Less, 3 },
+        { Lexer::TokenType::Greater, 3 },
+        { Lexer::TokenType::LessEqual, 3 },
+        { Lexer::TokenType::GreaterEqual, 3 }
     };
 
 private:

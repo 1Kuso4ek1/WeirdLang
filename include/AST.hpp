@@ -1,3 +1,4 @@
+// TODO: Refactor
 #pragma once
 #include <complex>
 #include <format>
@@ -232,6 +233,16 @@ inline Value operator>=(const Value& left, const Value& right)
     }, left, right);
 }
 
+inline bool toBool(const Value& val)
+{
+    return std::visit([](auto&& v) -> bool
+    {
+        if constexpr (std::is_integral_v<std::decay_t<decltype(v)>>)
+            return static_cast<bool>(v);
+        return false;
+    }, val);
+}
+
 struct ValueExpr final : ExprNode
 {
     explicit ValueExpr(const Value& value)
@@ -325,6 +336,43 @@ struct StatementList final : ExprNode
     std::vector<ExprPtr> statements, args, passedArgs;
 };
 
+struct IfStatement final : ExprNode
+{
+    IfStatement(ExprPtr condition, ExprPtr then, ExprPtr elseExpr)
+        : condition(std::move(condition)), then(std::move(then)), elseExpr(std::move(elseExpr))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        if(toBool(*condition->Evaluate(scope)))
+            return then->Evaluate(scope);
+        if(elseExpr)
+            return elseExpr->Evaluate(scope);
+        return nullptr;
+    }
+
+    ExprPtr condition, then, elseExpr;
+};
+
+struct WhileStatement final : ExprNode
+{
+    WhileStatement(ExprPtr condition, ExprPtr body)
+        : condition(std::move(condition)), body(std::move(body))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        ValuePtr result{};
+
+        while(toBool(*condition->Evaluate(scope)))
+            result = body->Evaluate(scope);
+
+        return result;
+    }
+
+    ExprPtr condition, body;
+};
+
 struct FunctionCall final : ExprNode
 {
     FunctionCall(std::string&& name, std::vector<ExprPtr>&& args)
@@ -338,6 +386,7 @@ struct FunctionCall final : ExprNode
             const auto expr = scope->Get(name).get();
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
+                // TODO: Args are being moved and so are gone after the first call
                 cast->passedArgs = std::move(args);
                 return expr->Evaluate(scope);
             }

@@ -1,1 +1,8 @@
-println(!true)
+if(10 < 5) -> println("Hello world")
+else if(10 > 5) -> println("Hi world!")
+else -> println("What?")
+
+var i = 0
+while(i < 10) -> println(++i)
+
+println("")

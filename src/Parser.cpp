@@ -116,37 +116,16 @@ ExprPtr Parser::ParseUnary()
 
 ExprPtr Parser::ParseReserved()
 {
-    //if(currentToken.second == "var")
-    {
-        const auto token = currentToken.second;
+    const auto token = currentToken.second;
 
-        NextToken();
-        Expect(Lexer::TokenType::Identifier, false);
+    if(token == "var" || token == "fun")
+        return ParseVarOrFunc(token);
+    if(token == "if")
+        return ParseIf();
+    if(token == "while")
+        return ParseWhile();
 
-        const auto name = currentToken.second;
-        NextToken();
-
-        if(globalScope->Contains(name))
-            throw std::runtime_error("Symbol already exists");
-
-        if(token == "var")
-        {
-            //globalScope->Declare(name, std::make_unique<ValueExpr>(0));
-            return std::make_unique<VariableDecl>(name, std::make_unique<ValueExpr>(0));
-        }
-
-        NextToken();
-
-        auto args = ParseArguments();
-        const auto list = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
-
-        globalScope->Declare(name, std::make_unique<StatementList>(
-            std::move(dynamic_cast<StatementList*>(list.get())->statements),
-            std::move(args)
-        ));
-
-        return nullptr;
-    }
+    return nullptr;
 }
 
 ExprPtr Parser::ParseIdentifier()
@@ -222,6 +201,76 @@ std::vector<ExprPtr> Parser::ParseArguments()
     Expect(Lexer::TokenType::RightParen);
 
     return args;
+}
+
+ExprPtr Parser::ParseVarOrFunc(const std::string& token)
+{
+    NextToken();
+    Expect(Lexer::TokenType::Identifier, false);
+
+    const auto name = currentToken.second;
+    NextToken();
+
+    if(globalScope->Contains(name))
+        throw std::runtime_error("Symbol already exists");
+
+    if(token == "var")
+    {
+        //globalScope->Declare(name, std::make_unique<ValueExpr>(0));
+        return std::make_unique<VariableDecl>(name, std::make_unique<ValueExpr>(0));
+    }
+
+    NextToken();
+
+    auto args = ParseArguments();
+    const auto list = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+
+    globalScope->Declare(name, std::make_unique<StatementList>(
+        std::move(dynamic_cast<StatementList*>(list.get())->statements),
+        std::move(args)
+    ));
+
+    return nullptr;
+}
+
+ExprPtr Parser::ParseIf()
+{
+    NextToken();
+    Expect(Lexer::TokenType::LeftParen);
+
+    auto condition = Parse();
+
+    Expect(Lexer::TokenType::RightParen);
+
+    auto then = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+    auto elseExpr = ExprPtr{};
+
+    if(currentToken.second == "else")
+    {
+        NextToken();
+
+        if(currentToken.second == "if")
+            elseExpr = ParseIf();
+        else
+            elseExpr = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+    }
+
+    return std::make_unique<IfStatement>(std::move(condition), std::move(then), std::move(elseExpr));
+}
+
+ExprPtr Parser::ParseWhile()
+{
+    NextToken();
+
+    Expect(Lexer::TokenType::LeftParen);
+
+    auto condition = Parse();
+
+    Expect(Lexer::TokenType::RightParen);
+
+    auto body = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+
+    return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
 }
 
 int Parser::GetPrecedence() const
