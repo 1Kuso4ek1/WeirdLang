@@ -24,6 +24,7 @@ private:
     ExprPtr ParseIdentifier();
     ExprPtr ParseNumber();
     ExprPtr ParseString();
+    ExprPtr ParseStatementList();
 
     std::vector<ExprPtr> ParseArguments();
 
@@ -35,6 +36,10 @@ private:
     const std::unordered_map<Lexer::TokenType, int> precedence =
     {
         { Lexer::TokenType::Equal, 1 },
+        { Lexer::TokenType::AddAssign, 1 },
+        { Lexer::TokenType::SubAssign, 1 },
+        { Lexer::TokenType::MulAssign, 1 },
+        { Lexer::TokenType::DivAssign, 1 },
         { Lexer::TokenType::Plus, 2 },
         { Lexer::TokenType::Minus, 2 },
         { Lexer::TokenType::Multiply, 3 },

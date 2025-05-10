@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -10,6 +11,8 @@ public:
     {
         None, Reserved, Identifier, Number, Bool, String,
         Plus, Minus, Multiply, Divide, Equal, Semicolon, Comma,
+        AddAssign, SubAssign, MulAssign, DivAssign,
+        IsEqual, Less, Greater, LessEqual, GreaterEqual, Arrow,
         LeftParen, RightParen, LeftBrace, RightBrace,
         EndOfFile
     };
@@ -27,14 +30,14 @@ private:
     void Tokenize();
 
     Token ProcessIdentifier(StringIter& iter) const;
-    Token ProcessNumber(StringIter& iter) const;
-    Token ProcessString(StringIter& iter) const;
-    Token ProcessOperator(StringIter& iter) const;
+    static Token ProcessNumber(StringIter& iter);
+    static Token ProcessString(StringIter& iter);
+    Token ProcessOperator(const StringIter& iter);
 
 private:
     const std::vector<std::string> reservedWords =
     {
-        "var"
+        "var", "fun"
     };
 
 private:
@@ -43,6 +46,35 @@ private:
     bool comment = false;
     std::vector<Token> tokens;
     TokenIter current;
+};
+
+const static std::unordered_map<char, Lexer::Token> operatorTokensMap =
+{
+    { '+', { Lexer::TokenType::Plus, "+" } },
+    { '-', { Lexer::TokenType::Minus, "-" } },
+    { '*', { Lexer::TokenType::Multiply, "*" } },
+    { '/', { Lexer::TokenType::Divide, "/" } },
+    { '=', { Lexer::TokenType::Equal, "=" } },
+    { '<', { Lexer::TokenType::Less, "<" } },
+    { '>', { Lexer::TokenType::Greater, ">" } },
+    { '(', { Lexer::TokenType::LeftParen, "(" } },
+    { ')', { Lexer::TokenType::RightParen, ")" } },
+    { ';', { Lexer::TokenType::Semicolon, ";" } },
+    { '{', { Lexer::TokenType::LeftBrace, "{" } },
+    { '}', { Lexer::TokenType::RightBrace, "}" } },
+    { ',', { Lexer::TokenType::Comma, "," } }
+};
+
+const static std::map<std::pair<char, char>, Lexer::Token> doubleTokensMap =
+{
+    { { '+', '=' }, { Lexer::TokenType::AddAssign, "+=" } },
+    { { '-', '=' }, { Lexer::TokenType::SubAssign, "-=" } },
+    { { '*', '=' }, { Lexer::TokenType::MulAssign, "*=" } },
+    { { '/', '=' }, { Lexer::TokenType::DivAssign, "/=" } },
+    { { '=', '=' }, { Lexer::TokenType::IsEqual, "==" } },
+    { { '<', '=' }, { Lexer::TokenType::LessEqual, "<=" } },
+    { { '>', '=' }, { Lexer::TokenType::GreaterEqual, ">=" } },
+    { { '-', '>' }, { Lexer::TokenType::Arrow, "->" } }
 };
 
 const static std::unordered_map<Lexer::TokenType, std::string> tokenTypeMap =

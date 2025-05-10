@@ -1,32 +1,14 @@
 #include "Parser.hpp"
 
 #include <format>
-#include <print>
 
-#include "../include/Lexer.hpp"
+#include "Lexer.hpp"
+#include "NativeFunctions.hpp"
 
 Parser::Parser(Lexer& lexer)
     : lexer(lexer)
 {
-    symbolTable["print"] =
-        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args) -> ValuePtr
-        {
-            for(const auto& arg : args)
-                if(arg)
-                    std::visit([](auto&& v) { std::print("{}", v); }, *arg);
-
-            return nullptr;
-        });
-
-    symbolTable["println"] =
-        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args) -> ValuePtr
-        {
-            for(const auto& arg : args)
-                if(arg)
-                    std::visit([](auto&& v) { std::println("{}", v); }, *arg);
-
-            return nullptr;
-        });
+    CreateDefaultFunctions();
 
     NextToken();
 
@@ -68,6 +50,11 @@ ExprPtr Parser::ParsePrimary()
     case Lexer::TokenType::Identifier: return ParseIdentifier();
     case Lexer::TokenType::Number: return ParseNumber();
     case Lexer::TokenType::String: return ParseString();
+    case Lexer::TokenType::Semicolon: NextToken(); break;
+
+    case Lexer::TokenType::Arrow:
+    case Lexer::TokenType::LeftBrace:
+        return ParseStatementList();
 
     case Lexer::TokenType::Bool:
     {
@@ -88,11 +75,7 @@ ExprPtr Parser::ParsePrimary()
         return expr;
     }
 
-    case Lexer::TokenType::Semicolon:
-        NextToken();
-
-    default:
-        break;
+    default: break;
     }
 
     return nullptr;
@@ -123,8 +106,10 @@ ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
 
 ExprPtr Parser::ParseReserved()
 {
-    if(currentToken.second == "var")
+    //if(currentToken.second == "var")
     {
+        const auto token = currentToken.second;
+
         NextToken();
         Expect(Lexer::TokenType::Identifier, false);
 
@@ -134,12 +119,24 @@ ExprPtr Parser::ParseReserved()
         if(symbolTable.contains(name))
             throw std::runtime_error("Symbol already exists");
 
-        symbolTable[name] = std::make_unique<ValueExpr>(0);
+        if(token == "var")
+        {
+            symbolTable[name] = std::make_unique<ValueExpr>(0);
+            return std::make_unique<VariableExpr>(name);
+        }
 
-        return std::make_unique<VariableExpr>(name);
+        NextToken();
+
+        auto args = ParseArguments();
+        const auto list = ParseStatementList();
+
+        symbolTable[name] = std::make_unique<StatementList>(
+            std::move(static_cast<StatementList*>(list.get())->statements),
+            std::move(args)
+        );
+
+        return nullptr;
     }
-
-    return nullptr;
 }
 
 ExprPtr Parser::ParseIdentifier()
@@ -185,6 +182,21 @@ ExprPtr Parser::ParseString()
     return std::make_unique<ValueExpr>(value);
 }
 
+ExprPtr Parser::ParseStatementList()
+{
+    NextToken();
+
+    std::vector<ExprPtr> list;
+    while(currentToken.first != Lexer::TokenType::RightBrace
+        && currentToken.first != Lexer::TokenType::EndOfFile)
+        if(auto expr = Parse())
+            list.emplace_back(std::move(expr));
+
+    Expect(Lexer::TokenType::RightBrace);
+
+    return std::make_unique<StatementList>(std::move(list));
+}
+
 std::vector<ExprPtr> Parser::ParseArguments()
 {
     std::vector<ExprPtr> args;
@@ -209,7 +221,7 @@ int Parser::GetPrecedence() const
     return -1;
 }
 
-void Parser::Expect(Lexer::TokenType tokenType, bool skip)
+void Parser::Expect(const Lexer::TokenType tokenType, const bool skip)
 {
     if(currentToken.first != tokenType)
         throw std::runtime_error(

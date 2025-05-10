@@ -26,26 +26,34 @@ using FunctionType = std::function<ValuePtr(const std::vector<ValuePtr>&)>;
 using SymbolTable = std::unordered_map<std::string, ExprPtr>;
 using FunctionTable = std::unordered_map<std::string, FunctionType>;
 
+struct UndefinedExpr final : ExprNode
+{
+    ValuePtr Evaluate(SymbolTable& symbolTable) override
+    {
+        throw std::runtime_error("Evaluation of an undefined expression");
+    }
+};
+
 inline SymbolTable symbolTable;
 
-inline Value operator+(const Value& lval, const Value& rval)
+inline Value operator+(const Value& left, const Value& right)
 {
-    return std::visit([](auto&& l, auto&& r) -> Value { return l + r; }, lval, rval);
+    return std::visit([](auto&& l, auto&& r) -> Value { return l + r; }, left, right);
 }
 
-inline Value operator-(const Value& lval, const Value& rval)
+inline Value operator-(const Value& left, const Value& right)
 {
-    return std::visit([](auto&& l, auto&& r) -> Value { return l - r; }, lval, rval);
+    return std::visit([](auto&& l, auto&& r) -> Value { return l - r; }, left, right);
 }
 
-inline Value operator*(const Value& lval, const Value& rval)
+inline Value operator*(const Value& left, const Value& right)
 {
-    return std::visit([](auto&& l, auto&& r) -> Value { return l * r; }, lval, rval);
+    return std::visit([](auto&& l, auto&& r) -> Value { return l * r; }, left, right);
 }
 
-inline Value operator/(const Value& lval, const Value& rval)
+inline Value operator/(const Value& left, const Value& right)
 {
-    return std::visit([](auto&& l, auto&& r) -> Value { return l / r; }, lval, rval);
+    return std::visit([](auto&& l, auto&& r) -> Value { return l / r; }, left, right);
 }
 
 struct ValueExpr final : ExprNode
@@ -80,8 +88,8 @@ struct VariableExpr final : ExprNode
 
 struct StatementList final : ExprNode
 {
-    explicit StatementList(std::vector<ExprPtr>&& statements)
-        : statements(std::move(statements))
+    explicit StatementList(std::vector<ExprPtr>&& statements, std::vector<ExprPtr>&& args = {})
+        : statements(std::move(statements)), args(std::move(args))
     {}
 
     explicit StatementList(FunctionType&& nativeFunc)
@@ -93,9 +101,9 @@ struct StatementList final : ExprNode
         if(nativeFunc)
         {
             std::vector<ValuePtr> evaluatedArgs;
-            evaluatedArgs.reserve(args.size());
+            evaluatedArgs.reserve(passedArgs.size());
 
-            for(const auto& arg : args)
+            for(const auto& arg : passedArgs)
                 evaluatedArgs.push_back(arg->Evaluate(symbolTable));
 
             return nativeFunc(evaluatedArgs);
@@ -111,8 +119,7 @@ struct StatementList final : ExprNode
     }
 
     FunctionType nativeFunc{};
-    std::vector<ExprPtr> args;
-    std::vector<ExprPtr> statements;
+    std::vector<ExprPtr> statements, args, passedArgs;
 };
 
 struct FunctionCall final : ExprNode
@@ -128,7 +135,7 @@ struct FunctionCall final : ExprNode
             const auto expr = symbolTable.at(name).get();
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
-                cast->args = std::move(args);
+                cast->passedArgs = std::move(args);
                 return expr->Evaluate(symbolTable);
             }
 
@@ -151,11 +158,15 @@ struct BinaryExpr final : ExprNode
     ValuePtr Evaluate(SymbolTable& symbolTable) override
     {
         auto lval = left->Evaluate(symbolTable);
-        auto rval = right->Evaluate(symbolTable);
+        const auto rval = right->Evaluate(symbolTable);
 
         switch(token.first)
         {
         case Lexer::TokenType::Equal: *lval = *rval; return lval;
+        case Lexer::TokenType::AddAssign: *lval = *lval + *rval; return lval;
+        case Lexer::TokenType::SubAssign: *lval = *lval - *rval; return lval;
+        case Lexer::TokenType::MulAssign: *lval = *lval * *rval; return lval;
+        case Lexer::TokenType::DivAssign: *lval = *lval / *rval; return lval;
         case Lexer::TokenType::Plus: return std::make_shared<Value>(*lval + *rval);
         case Lexer::TokenType::Minus: return std::make_shared<Value>(*lval - *rval);
         case Lexer::TokenType::Multiply: return std::make_shared<Value>(*lval * *rval);

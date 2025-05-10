@@ -57,7 +57,7 @@ Lexer::Token Lexer::ProcessIdentifier(StringIter& iter) const
     return { TokenType::Identifier, value };
 }
 
-Lexer::Token Lexer::ProcessNumber(StringIter& iter) const
+Lexer::Token Lexer::ProcessNumber(StringIter& iter)
 {
     auto value = ""s;
 
@@ -75,7 +75,7 @@ Lexer::Token Lexer::ProcessNumber(StringIter& iter) const
     return { TokenType::Number, value };
 }
 
-Lexer::Token Lexer::ProcessString(StringIter& iter) const
+Lexer::Token Lexer::ProcessString(StringIter& iter)
 {
     auto value = ""s;
 
@@ -85,21 +85,25 @@ Lexer::Token Lexer::ProcessString(StringIter& iter) const
     return { TokenType::String, value };
 }
 
-Lexer::Token Lexer::ProcessOperator(StringIter& iter) const
+Lexer::Token Lexer::ProcessOperator(const StringIter& iter)
 {
-    switch(*iter)
+    if(operatorTokensMap.contains(*iter))
     {
-    case '+': return { TokenType::Plus, "+" };
-    case '-': return { TokenType::Minus, "-" };
-    case '*': return { TokenType::Multiply, "*" };
-    case '/': return { TokenType::Divide, "/" };
-    case '=': return { TokenType::Equal, "=" };
-    case '(': return { TokenType::LeftParen, "(" };
-    case ')': return { TokenType::RightParen, ")" };
-    case ';': return { TokenType::Semicolon, ";" };
-    case '{': return { TokenType::LeftBrace, "{" };
-    case '}': return { TokenType::RightBrace, "}" };
-    case ',': return { TokenType::Comma, "," };
+        auto currentOp = operatorTokensMap.at(*iter);
+        auto prevOp = tokens.back();
+
+        if(prevOp.first != TokenType::String && prevOp.second.size() == 1)
+        {
+            const auto p = std::pair{ prevOp.second.at(0), currentOp.second.at(0) };
+
+            if(doubleTokensMap.contains(p))
+            {
+                tokens.pop_back();
+                return doubleTokensMap.at(p);
+            }
+        }
+
+        return currentOp;
     }
 
     return { TokenType::None, "" };
