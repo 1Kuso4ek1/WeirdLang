@@ -13,8 +13,16 @@ fun whileCheck(var start, var end) {
     return i
 }
 
+fun greetingCheck() {
+    print("Enter your name: ")
+    var name = input()
+
+    return "Hello, " + name + "!"
+}
+
 fun main() {
     ifElseCheck()
     var i = whileCheck(5, 15)
     println("Returned: ", i)
+    println("Greeting: ", greetingCheck());
 }
