@@ -291,6 +291,25 @@ struct VariableDecl final : ExprNode
     ExprPtr value;
 };
 
+struct ReturnExpr final : ExprNode
+{
+    struct ReturnValue
+    {
+        ValuePtr value;
+    };
+
+    explicit ReturnExpr(ExprPtr value)
+        : value(value)
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        throw ReturnValue{ value->Evaluate(scope) };
+    }
+
+    ExprPtr value;
+};
+
 struct StatementList final : ExprNode
 {
     explicit StatementList(std::vector<ExprPtr>&& statements, std::vector<ExprPtr>&& args = {})
@@ -387,7 +406,19 @@ struct FunctionCall final : ExprNode
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
                 cast->passedArgs = args;
-                return expr->Evaluate(scope);
+
+                ValuePtr result{};
+
+                try
+                {
+                    result = expr->Evaluate(scope);
+                }
+                catch(const ReturnExpr::ReturnValue& returnExpr)
+                {
+                    result = returnExpr.value;
+                }
+
+                return result;
             }
 
             throw std::runtime_error(std::format("'{}' is not a function", name));

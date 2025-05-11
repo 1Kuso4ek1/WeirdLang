@@ -40,7 +40,8 @@ private:
 private:
     const std::vector<std::string> reservedWords =
     {
-        "var", "fun", "if", "else", "while"
+        "var", "fun", "if", "else", "while",
+        "return"
     };
 
 private:

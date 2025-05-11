@@ -9,9 +9,12 @@ fun whileCheck(var start, var end) {
 
     while(i <= end) -> print(i++, " ")
     println()
+
+    return i
 }
 
 fun main() {
     ifElseCheck()
-    whileCheck(5, 15)
+    var i = whileCheck(5, 15)
+    println("Returned: ", i)
 }

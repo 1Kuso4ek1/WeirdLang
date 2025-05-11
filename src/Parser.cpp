@@ -135,6 +135,11 @@ ExprPtr Parser::ParseReserved()
         return ParseIf();
     if(token == "while")
         return ParseWhile();
+    if(token == "return")
+    {
+        NextToken();
+        return std::make_shared<ReturnExpr>(Parse());
+    }
 
     return nullptr;
 }
