@@ -409,23 +409,46 @@ struct UnaryExpr final : ExprNode
     ValuePtr Evaluate(const ScopePtr scope) override
     {
         auto val = expr->Evaluate(scope);
+        ValuePtr oldValue{};
 
         switch(token.first)
         {
         case Lexer::TokenType::Plus: return val;
         case Lexer::TokenType::Minus: return std::make_shared<Value>(-*val);
         case Lexer::TokenType::Not: return std::make_shared<Value>(!*val);
-        case Lexer::TokenType::Increment: *val = *val + 1; return val;
-        case Lexer::TokenType::Decrement: *val = *val - 1; return val;
+        case Lexer::TokenType::Increment:
+            if(operationFirst)
+            {
+                *val = *val + 1;
+                return val;
+            }
+
+            oldValue = std::make_shared<Value>(*val);
+            *val = *val + 1;
+            return oldValue;
+
+        case Lexer::TokenType::Decrement:
+            if(operationFirst)
+            {
+                *val = *val - 1;
+                return val;
+            }
+
+            oldValue = std::make_shared<Value>(*val);
+            *val = *val - 1;
+            return oldValue;
+
         default: break;
         }
 
-        return std::make_shared<Value>(0);
+        return val;
     }
 
     Lexer::Token token;
 
     ExprPtr expr;
+
+    bool operationFirst = true; // That way we can handle prefix/postfix inc/dec
 };
 
 struct BinaryExpr final : ExprNode
@@ -469,7 +492,7 @@ struct BinaryExpr final : ExprNode
         default: break;
         }
 
-        return std::make_shared<Value>(0);
+        return lval;
     }
 
     Lexer::Token token;

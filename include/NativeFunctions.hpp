@@ -26,7 +26,9 @@ inline void DefineDefaultFunctions()
         {
             for(const auto& arg : args)
                 if(arg)
-                    std::visit([](auto&& v) { std::println("{}", v); }, *arg);
+                    std::visit([](auto&& v) { std::print("{}", v); }, *arg);
+
+            std::println("");
 
             return nullptr;
         });

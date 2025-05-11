@@ -83,6 +83,17 @@ ExprPtr Parser::ParsePrimary()
 
 ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
 {
+    if(currentToken.first == Lexer::TokenType::Increment
+        || currentToken.first == Lexer::TokenType::Decrement)
+    {
+        auto expr = std::make_unique<UnaryExpr>(currentToken, std::move(left));
+        expr->operationFirst = false;
+
+        NextToken();
+
+        return std::move(expr);
+    }
+
     while(true)
     {
         const int currentPrec = GetPrecedence();
