@@ -25,7 +25,7 @@ struct ExprNode : ASTNode
     virtual ValuePtr Evaluate(std::shared_ptr<Scope>) = 0;
 };
 
-using ExprPtr = std::unique_ptr<ExprNode>;
+using ExprPtr = std::shared_ptr<ExprNode>;
 using FunctionType = std::function<ValuePtr(const std::vector<ValuePtr>&)>;
 using SymbolTable = std::unordered_map<std::string, ExprPtr>;
 using FunctionTable = std::unordered_map<std::string, FunctionType>;
@@ -387,7 +387,7 @@ struct FunctionCall final : ExprNode
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
                 // TODO: Args are being moved and so are gone after the first call
-                cast->passedArgs = std::move(args);
+                cast->passedArgs = args;
                 return expr->Evaluate(scope);
             }
 
@@ -431,7 +431,7 @@ struct UnaryExpr final : ExprNode
 
 struct BinaryExpr final : ExprNode
 {
-    BinaryExpr(Lexer::Token token, std::unique_ptr<ExprNode> left, std::unique_ptr<ExprNode> right)
+    BinaryExpr(Lexer::Token token, ExprPtr left, ExprPtr right)
         : token(std::move(token)), left(std::move(left)), right(std::move(right))
     {}
 

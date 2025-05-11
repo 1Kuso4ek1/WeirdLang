@@ -50,15 +50,15 @@ private:
         { Lexer::TokenType::Multiply, 3 },
         { Lexer::TokenType::Divide, 3 },
         { Lexer::TokenType::Modulo, 3 },
-        { Lexer::TokenType::And, 3 },
-        { Lexer::TokenType::Or, 3 },
-        { Lexer::TokenType::BitwiseAnd, 3 },
-        { Lexer::TokenType::BitwiseOr, 3 },
-        { Lexer::TokenType::BitwiseXor, 3 },
-        { Lexer::TokenType::Less, 3 },
-        { Lexer::TokenType::Greater, 3 },
-        { Lexer::TokenType::LessEqual, 3 },
-        { Lexer::TokenType::GreaterEqual, 3 }
+        { Lexer::TokenType::And, 1 },
+        { Lexer::TokenType::Or, 1 },
+        { Lexer::TokenType::BitwiseAnd, 2 },
+        { Lexer::TokenType::BitwiseOr, 2 },
+        { Lexer::TokenType::BitwiseXor, 2 },
+        { Lexer::TokenType::Less, 1 },
+        { Lexer::TokenType::Greater, 1 },
+        { Lexer::TokenType::LessEqual, 1 },
+        { Lexer::TokenType::GreaterEqual, 1 }
     };
 
 private:

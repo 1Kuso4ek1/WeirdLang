@@ -98,7 +98,7 @@ ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
         if(const int nextPrec = GetPrecedence(); currentPrec < nextPrec)
             right = ParseBinaryRight(currentPrec + 1, std::move(right));
 
-        left = std::make_unique<BinaryExpr>(
+        left = std::make_shared<BinaryExpr>(
             operation, std::move(left), std::move(right)
         );
     }
