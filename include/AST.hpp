@@ -386,7 +386,6 @@ struct FunctionCall final : ExprNode
             const auto expr = scope->Get(name).get();
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
-                // TODO: Args are being moved and so are gone after the first call
                 cast->passedArgs = args;
                 return expr->Evaluate(scope);
             }
