@@ -10,7 +10,8 @@ public:
     enum class TokenType
     {
         None, Reserved, Identifier, Number, Bool, String,
-        Plus, Minus, Multiply, Divide, Modulo, Equal, Semicolon, Comma,
+        Plus, Minus, Multiply, Divide, Modulo, Equal,
+        Semicolon, Comma, Dot,
         AddAssign, SubAssign, MulAssign, DivAssign, ModAssign,
         Increment, Decrement,
         And, Or, BitwiseAnd, BitwiseOr, BitwiseXor, Not,
@@ -41,7 +42,7 @@ private:
     const std::vector<std::string> reservedWords =
     {
         "var", "fun", "if", "else", "while",
-        "return"
+        "return", "struct"
     };
 
 private:
@@ -65,9 +66,10 @@ const static std::unordered_map<char, Lexer::Token> operatorTokensMap =
     { '(', { Lexer::TokenType::LeftParen, "(" } },
     { ')', { Lexer::TokenType::RightParen, ")" } },
     { ';', { Lexer::TokenType::Semicolon, ";" } },
+    { ',', { Lexer::TokenType::Comma, "," } },
+    { '.', { Lexer::TokenType::Dot, "." } },
     { '{', { Lexer::TokenType::LeftBrace, "{" } },
     { '}', { Lexer::TokenType::RightBrace, "}" } },
-    { ',', { Lexer::TokenType::Comma, "," } },
     { '&', { Lexer::TokenType::BitwiseAnd, "&" } },
     { '|', { Lexer::TokenType::BitwiseOr, "|" } },
     { '^', { Lexer::TokenType::BitwiseXor, "^" } },
@@ -115,6 +117,7 @@ const static std::unordered_map<Lexer::TokenType, std::string> tokenTypeMap =
     { Lexer::TokenType::Equal, "Equal" },
     { Lexer::TokenType::Semicolon, "Semicolon" },
     { Lexer::TokenType::Comma, "Comma" },
+    { Lexer::TokenType::Dot, "Dot" },
     { Lexer::TokenType::AddAssign, "AddAssign" },
     { Lexer::TokenType::SubAssign, "SubAssign" },
     { Lexer::TokenType::MulAssign, "MulAssign" },

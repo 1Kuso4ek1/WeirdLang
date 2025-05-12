@@ -124,6 +124,23 @@ struct VariableDecl final : ExprNode
     ExprPtr value;
 };
 
+struct StructDecl final : ExprNode
+{
+    explicit StructDecl(std::string name, std::vector<ExprPtr>&& content)
+        : name(std::move(name)), content(std::move(content))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        scope->Declare(name, ExprPtr(this));
+
+        return nullptr;
+    }
+
+    std::string name;
+    std::vector<ExprPtr> content;
+};
+
 struct ReturnExpr final : ExprNode
 {
     struct ReturnValue
@@ -132,7 +149,7 @@ struct ReturnExpr final : ExprNode
     };
 
     explicit ReturnExpr(ExprPtr value)
-        : value(value)
+        : value(std::move(value))
     {}
 
     ValuePtr Evaluate(const ScopePtr scope) override
@@ -166,7 +183,7 @@ struct StatementList final : ExprNode
             return nativeFunc(evaluatedArgs);
         }
 
-        const auto localScope = std::make_shared<Scope>(scope);
+        const auto localScope = noInnerScope ? globalScope : std::make_shared<Scope>(scope);
         for(int i = 0; i < args.size(); i++)
         {
             if(passedArgs.size() < i + 1)
@@ -184,8 +201,26 @@ struct StatementList final : ExprNode
         return result;
     }
 
+    bool noInnerScope = false;
     FunctionType nativeFunc{};
     std::vector<ExprPtr> statements, args, passedArgs;
+};
+
+struct FunctionDecl final : ExprNode
+{
+    explicit FunctionDecl(std::string name, ExprPtr body)
+        : name(std::move(name)), body(std::move(body))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        scope->Declare(name, std::move(body));
+
+        return nullptr;
+    }
+
+    std::string name;
+    ExprPtr body;
 };
 
 struct IfStatement final : ExprNode

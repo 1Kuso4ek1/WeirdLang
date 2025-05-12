@@ -29,6 +29,7 @@ private:
     ExprPtr ParseVarOrFunc(const std::string& token);
     ExprPtr ParseIf();
     ExprPtr ParseWhile();
+    ExprPtr ParseStruct();
 
     std::vector<ExprPtr> ParseArguments();
 

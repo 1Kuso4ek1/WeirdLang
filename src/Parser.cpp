@@ -21,6 +21,7 @@ Parser::Parser(Lexer& lexer)
     }
 
     root = std::make_unique<StatementList>(std::move(statements));
+    std::static_pointer_cast<StatementList>(root)->noInnerScope = true;
 }
 
 ExprPtr Parser::GetRoot()
@@ -86,6 +87,7 @@ ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
     if(currentToken.first == Lexer::TokenType::Increment
         || currentToken.first == Lexer::TokenType::Decrement)
     {
+        // TODO: Should I change make_uniques to make_shared?
         auto expr = std::make_unique<UnaryExpr>(currentToken, std::move(left));
         expr->operationFirst = false;
 
@@ -241,12 +243,10 @@ ExprPtr Parser::ParseVarOrFunc(const std::string& token)
     auto args = ParseArguments();
     const auto list = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
 
-    globalScope->Declare(name, std::make_unique<StatementList>(
+    return std::make_unique<FunctionDecl>(name, std::make_unique<StatementList>(
         std::move(dynamic_cast<StatementList*>(list.get())->statements),
         std::move(args)
     ));
-
-    return nullptr;
 }
 
 ExprPtr Parser::ParseIf()
@@ -287,6 +287,19 @@ ExprPtr Parser::ParseWhile()
     auto body = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
 
     return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
+}
+
+ExprPtr Parser::ParseStruct()
+{
+    NextToken();
+
+    const auto name = currentToken.second;
+
+    NextToken();
+
+    auto content = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+
+    return nullptr;
 }
 
 int Parser::GetPrecedence() const

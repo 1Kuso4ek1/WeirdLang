@@ -27,6 +27,8 @@ int main()
 
     DefineDefaultFunctions();
 
+    parser.GetRoot()->Evaluate(globalScope);
+
     if(const auto result = globalScope->Get("main")->Evaluate(globalScope))
         std::visit([](auto&& v) { std::println("Value: {}", v); }, *result);
 }
