@@ -1,3 +1,10 @@
+struct Name {
+    fun GetName() ->
+        return name
+
+    var name
+}
+
 fun ifElseCheck() {
     if(10 < 5) -> println("Hello world")
     else if(10 > 5) -> println("Hi world!")

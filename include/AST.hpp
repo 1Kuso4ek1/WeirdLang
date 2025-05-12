@@ -126,19 +126,19 @@ struct VariableDecl final : ExprNode
 
 struct StructDecl final : ExprNode
 {
-    explicit StructDecl(std::string name, std::vector<ExprPtr>&& content)
-        : name(std::move(name)), content(std::move(content))
+    explicit StructDecl(std::string name)
+        : name(std::move(name))
     {}
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        scope->Declare(name, ExprPtr(this));
+        scope->Declare(name, std::make_unique<StructDecl>(*this));
 
         return nullptr;
     }
 
     std::string name;
-    std::vector<ExprPtr> content;
+    std::unordered_map<std::string, ExprPtr> content;
 };
 
 struct ReturnExpr final : ExprNode

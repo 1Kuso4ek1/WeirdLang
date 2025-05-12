@@ -142,6 +142,8 @@ ExprPtr Parser::ParseReserved()
         NextToken();
         return std::make_shared<ReturnExpr>(Parse());
     }
+    if(token == "struct")
+        return ParseStruct();
 
     return nullptr;
 }
@@ -150,6 +152,7 @@ ExprPtr Parser::ParseIdentifier()
 {
     auto name = currentToken.second;
     NextToken();
+
     if(currentToken.first == Lexer::TokenType::LeftParen)
     {
         NextToken();
@@ -277,7 +280,6 @@ ExprPtr Parser::ParseIf()
 ExprPtr Parser::ParseWhile()
 {
     NextToken();
-
     Expect(Lexer::TokenType::LeftParen);
 
     auto condition = Parse();
@@ -292,14 +294,23 @@ ExprPtr Parser::ParseWhile()
 ExprPtr Parser::ParseStruct()
 {
     NextToken();
-
     const auto name = currentToken.second;
+    NextToken();
+
+    auto structDecl = std::make_unique<StructDecl>(name);
+
+    Expect(Lexer::TokenType::LeftBrace);
+
+    while(currentToken.first != Lexer::TokenType::RightBrace)
+    {
+        const auto token = currentToken.second;
+        auto expr = ParseVarOrFunc(token);
+        structDecl->content[std::static_pointer_cast<VariableDecl>(expr)->name] = std::move(expr);
+    }
 
     NextToken();
 
-    auto content = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
-
-    return nullptr;
+    return structDecl;
 }
 
 int Parser::GetPrecedence() const
