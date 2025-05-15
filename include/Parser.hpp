@@ -59,7 +59,8 @@ private:
         { Lexer::TokenType::Less, 1 },
         { Lexer::TokenType::Greater, 1 },
         { Lexer::TokenType::LessEqual, 1 },
-        { Lexer::TokenType::GreaterEqual, 1 }
+        { Lexer::TokenType::GreaterEqual, 1 },
+        { Lexer::TokenType::Dot, 4 }
     };
 
 private:

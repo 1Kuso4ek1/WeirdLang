@@ -157,6 +157,14 @@ ExprPtr Parser::ParseIdentifier()
     {
         NextToken();
         auto args = ParseArguments();
+
+        if(globalScope->Contains(name))
+        {
+            auto node = globalScope->Get(name).get();
+            if(dynamic_cast<StructDecl*>(node))
+                return std::make_unique<ConstructorExpr>(std::move(name), std::move(args));
+        }
+
         return std::make_unique<FunctionCall>(std::move(name), std::move(args));
     }
 
@@ -309,6 +317,8 @@ ExprPtr Parser::ParseStruct()
     }
 
     NextToken();
+
+    globalScope->Declare(name, std::move(structDecl));
 
     return structDecl;
 }

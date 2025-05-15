@@ -18,7 +18,11 @@ inline void DefineDefaultFunctions()
         {
             for(const auto& arg : args)
                 if(arg)
-                    std::visit([](auto&& v) { std::print("{}", v); }, *arg);
+                    std::visit([](auto&& v)
+                    {
+                        if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
+                            std::print("{}", v);
+                    }, *arg);
 
             return nullptr;
         });
@@ -28,7 +32,11 @@ inline void DefineDefaultFunctions()
         {
             for(const auto& arg : args)
                 if(arg)
-                    std::visit([](auto&& v) { std::print("{}", v); }, *arg);
+                    std::visit([](auto&& v)
+                    {
+                        if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
+                            std::print("{}", v);
+                    }, *arg);
 
             std::println("");
 

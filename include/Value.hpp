@@ -1,8 +1,9 @@
 #pragma once
+#include <any>
 #include <memory>
 #include <variant>
 
-using Value = std::variant<int, float, double, bool, std::string>;
+using Value = std::variant<int, float, double, bool, std::string, std::any>;
 using ValuePtr = std::shared_ptr<Value>;
 
 inline Value operator-(const Value& val)

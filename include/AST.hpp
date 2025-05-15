@@ -124,23 +124,6 @@ struct VariableDecl final : ExprNode
     ExprPtr value;
 };
 
-struct StructDecl final : ExprNode
-{
-    explicit StructDecl(std::string name)
-        : name(std::move(name))
-    {}
-
-    ValuePtr Evaluate(const ScopePtr scope) override
-    {
-        scope->Declare(name, std::make_unique<StructDecl>(*this));
-
-        return nullptr;
-    }
-
-    std::string name;
-    std::unordered_map<std::string, ExprPtr> content;
-};
-
 struct ReturnExpr final : ExprNode
 {
     struct ReturnValue
@@ -221,6 +204,72 @@ struct FunctionDecl final : ExprNode
 
     std::string name;
     ExprPtr body;
+};
+
+using StructBody = std::unordered_map<std::string, ExprPtr>;
+
+struct StructDecl final : ExprNode
+{
+    explicit StructDecl(std::string name)
+        : name(std::move(name))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        scope->Declare(name, std::make_unique<StructDecl>(*this));
+
+        return nullptr;
+    }
+
+    std::string name;
+    StructBody content;
+};
+
+// TODO: Review
+struct StructInstance final : ExprNode
+{
+    explicit StructInstance(std::string name, ScopePtr innerScope)
+        : name(std::move(name)), innerScope(std::move(innerScope))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        return nullptr;
+    }
+
+    std::string name; // Redundant
+    ScopePtr innerScope; // Might work instead of this entire struct
+};
+
+struct ConstructorExpr final : ExprNode
+{
+    explicit ConstructorExpr(std::string&& name, std::vector<ExprPtr>&& args)
+        : name(std::move(name)), args(std::move(args))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        if(const auto structDecl = dynamic_cast<StructDecl*>(scope->Get(name).get()))
+        {
+            auto newScope = std::make_shared<Scope>(scope);
+
+            for(const auto& [name, value] : structDecl->content)
+                // Temporary solution!!!!! Replace it with specialized Clone() or smth
+                if(const auto var = dynamic_cast<VariableDecl*>(value.get()))
+                    newScope->Declare(name, std::make_shared<VariableDecl>(var->name, std::make_shared<ValueExpr>(var->value->Evaluate(scope))));
+                else if(const auto func = dynamic_cast<FunctionDecl*>(value.get()))
+                    newScope->Declare(name, std::make_shared<StatementList>(*std::static_pointer_cast<StatementList>(func->body)));
+
+            auto instance = std::make_shared<StructInstance>(name, std::move(newScope));
+
+            return std::make_shared<Value>(std::any{ instance });
+        }
+
+        throw std::runtime_error(std::format("Symbol '{}' is not a struct", name));
+    }
+
+    std::string name;
+    std::vector<ExprPtr> args;
 };
 
 struct IfStatement final : ExprNode
@@ -358,6 +407,21 @@ struct BinaryExpr final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
+        if(token.first == Lexer::TokenType::Dot)
+        {
+            const auto structExpr = left->Evaluate(scope);
+
+            if(std::holds_alternative<std::any>(*structExpr))
+            {
+                const auto any = std::get<5>(*structExpr);
+                const auto structInstance = std::any_cast<std::shared_ptr<StructInstance>>(any);
+
+                return right->Evaluate(structInstance->innerScope);
+            }
+
+            throw std::runtime_error("Dot operator can only be used on structs");
+        }
+
         auto lval = left->Evaluate(scope);
         const auto rval = right->Evaluate(scope);
 
