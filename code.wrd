@@ -1,7 +1,8 @@
 fun main() {
     var arr = array()
-    arr.add(0, 10, 20)
+    for(var i = 0; i <= 100; i++)
+        arr.add(i)
 
-    for(var i = 0; i < 3; i++)
+    for(var i = 0; i < arr.size(); i++)
         print(arr.at(i), " ")
 }

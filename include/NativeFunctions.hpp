@@ -4,6 +4,15 @@
 
 #include "AST.hpp"
 
+inline std::any GetFromStruct(const ScopePtr& scope, const std::string& name)
+{
+    const auto evaluated = *scope->Get("this")->Evaluate(scope);
+    const auto self = std::any_cast<StructInstancePtr>(std::get<std::any>(evaluated));
+    const auto data = *self->localScope->Get(name)->Evaluate({});
+
+    return std::get<std::any>(*std::any_cast<ValuePtr>(std::get<std::any>(data)));
+}
+
 inline void DeclareDefaultFunctions()
 {
     // Functions
@@ -68,20 +77,9 @@ inline void DefineDefaultFunctions()
                 if(args.empty())
                     throw std::runtime_error("Not enough arguments");
 
-                if(args[0])
-                {
-                    // It's kinda messy
-                    const auto evaluated = *scope->Get("this")->Evaluate(scope);
-                    const auto self = std::any_cast<StructInstancePtr>(std::get<std::any>(evaluated));
-                    const auto data = *self->localScope->Get("data")->Evaluate({});
-                    const auto any = std::get<std::any>(*std::any_cast<ValuePtr>(std::get<std::any>(data)));
+                const auto arr = std::any_cast<ArrayPtr>(GetFromStruct(scope, "data"));
 
-                    const auto arr = std::any_cast<ArrayPtr>(any);
-
-                    return arr->at(std::get<int>(*args[0]));
-                }
-
-                return nullptr;
+                return arr->at(std::get<int>(*args[0]));
             }));
     array->content["add"] =
         std::make_unique<FunctionDecl>("add", std::make_unique<StatementList>(
@@ -90,18 +88,20 @@ inline void DefineDefaultFunctions()
                 if(args.empty())
                     throw std::runtime_error("Not enough arguments");
 
-                const auto evaluated = *scope->Get("this")->Evaluate(scope);
-                const auto self = std::any_cast<StructInstancePtr>(std::get<std::any>(evaluated));
-                const auto data = *self->localScope->Get("data")->Evaluate({});
-                const auto any = std::get<std::any>(*std::any_cast<ValuePtr>(std::get<std::any>(data)));
-
-                const auto arr = std::any_cast<ArrayPtr>(any);
+                const auto arr = std::any_cast<ArrayPtr>(GetFromStruct(scope, "data"));
 
                 for(const auto& arg : args)
-                    if(arg)
-                        arr->push_back(arg);
+                    arr->push_back(std::make_shared<Value>(*arg));
 
                 return nullptr;
+            }));
+    array->content["size"] =
+        std::make_unique<FunctionDecl>("size", std::make_unique<StatementList>(
+            [&](const auto&, const ScopePtr& scope) -> ValuePtr
+            {
+                const auto arr = std::any_cast<ArrayPtr>(GetFromStruct(scope, "data"));
+
+                return std::make_shared<Value>(static_cast<int>(arr->size()));
             }));
 
     globalScope->Get("array") = std::move(array);
