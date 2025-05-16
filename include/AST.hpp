@@ -28,9 +28,7 @@ struct ExprNode : ASTNode
 };
 
 using ExprPtr = std::shared_ptr<ExprNode>;
-using FunctionType = std::function<ValuePtr(const std::vector<ValuePtr>&)>;
 using SymbolTable = std::unordered_map<std::string, ExprPtr>;
-using FunctionTable = std::unordered_map<std::string, FunctionType>;
 
 struct UndefinedExpr final : ExprNode
 {
@@ -77,6 +75,7 @@ struct Scope
 };
 
 using ScopePtr = std::shared_ptr<Scope>;
+using FunctionType = std::function<ValuePtr(const std::vector<ValuePtr>&, ScopePtr)>;
 
 inline auto globalScope = std::make_shared<Scope>();
 
@@ -124,7 +123,9 @@ struct VariableDecl final : ExprNode
     ValuePtr Evaluate(const ScopePtr scope) override
     {
         const auto evaluated = value->Evaluate(scope);
-        scope->Declare(name, value);
+
+        if(scope && !scope->Contains(name))
+            scope->Declare(name, value);
 
         return evaluated;
     }
@@ -205,7 +206,7 @@ struct StatementList final : ExprNode
             for(const auto& arg : passedArgs)
                 evaluatedArgs.push_back(arg->Evaluate(scope));
 
-            return nativeFunc(evaluatedArgs);
+            return nativeFunc(evaluatedArgs, scope);
         }
 
         const auto localScope = noLocalScope ? globalScope : std::make_shared<Scope>(scope);
@@ -290,6 +291,8 @@ struct StructInstance final : ExprNode
     std::string name; // Redundant
     ScopePtr localScope; // Might work instead of this entire struct
 };
+
+using StructInstancePtr = std::shared_ptr<StructInstance>;
 
 struct ConstructorExpr final : ExprNode
 {
@@ -533,7 +536,10 @@ struct BinaryExpr final : ExprNode
             if(std::holds_alternative<std::any>(*structExpr))
             {
                 const auto any = std::get<std::any>(*structExpr);
-                const auto structInstance = std::any_cast<std::shared_ptr<StructInstance>>(any);
+                const auto structInstance = std::any_cast<StructInstancePtr>(any);
+
+                // Might need more testing
+                structInstance->localScope->parent = scope;
 
                 return right->Evaluate(structInstance->localScope);
             }
