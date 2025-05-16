@@ -1,11 +1,11 @@
 struct Name {
-    fun Name(var name) ->
+    fun Name(var name)
         this.name = name + "!!!"
 
-    fun GetName() ->
-        return name
+    fun GetName()
+        name
 
-    fun SetName(var name) ->
+    fun SetName(var name)
         this.name = name
 
     var name
@@ -14,6 +14,21 @@ struct Name {
 fun main() {
     var p = Name("Hello")
     var f = Name("World")
+
+    var i = 0
+    while(i++ < 10)
+    {
+        if(i > 5 && i < 8) continue
+        else if(i > 8) break
+
+        print(i, " ")
+    }
+    println()
+
+    for(var j = i; j <= 30; j++)
+        print(j, " ")
+
+    println()
 
     println(p.GetName(), ", ", f.GetName())
 }

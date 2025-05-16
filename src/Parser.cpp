@@ -21,7 +21,7 @@ Parser::Parser(Lexer& lexer)
     }
 
     root = std::make_unique<StatementList>(std::move(statements));
-    std::static_pointer_cast<StatementList>(root)->noInnerScope = true;
+    std::static_pointer_cast<StatementList>(root)->noLocalScope = true;
 }
 
 ExprPtr Parser::GetRoot()
@@ -55,7 +55,7 @@ ExprPtr Parser::ParsePrimary()
 
     case Lexer::TokenType::Arrow:
     case Lexer::TokenType::LeftBrace:
-        return ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+        return ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
 
     case Lexer::TokenType::Bool:
     {
@@ -93,7 +93,7 @@ ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
 
         NextToken();
 
-        return std::move(expr);
+        left = std::move(expr);
     }
 
     while(true)
@@ -137,10 +137,22 @@ ExprPtr Parser::ParseReserved()
         return ParseIf();
     if(token == "while")
         return ParseWhile();
+    if(token == "for")
+        return ParseFor();
     if(token == "return")
     {
         NextToken();
         return std::make_shared<ReturnExpr>(Parse());
+    }
+    if(token == "break")
+    {
+        NextToken();
+        return std::make_shared<BreakExpr>();
+    }
+    if(token == "continue")
+    {
+        NextToken();
+        return std::make_shared<ContinueExpr>();
     }
     if(token == "struct")
         return ParseStruct();
@@ -198,7 +210,8 @@ ExprPtr Parser::ParseString()
 
 ExprPtr Parser::ParseStatementList(const bool singleExpr)
 {
-    NextToken();
+    if(!singleExpr)
+        NextToken();
 
     std::vector<ExprPtr> list;
     while(currentToken.first != Lexer::TokenType::RightBrace
@@ -252,7 +265,7 @@ ExprPtr Parser::ParseVarOrFunc(const std::string& token)
     NextToken();
 
     auto args = ParseArguments();
-    const auto list = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+    const auto list = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
 
     return std::make_unique<FunctionDecl>(name, std::make_unique<StatementList>(
         std::move(dynamic_cast<StatementList*>(list.get())->statements),
@@ -269,7 +282,7 @@ ExprPtr Parser::ParseIf()
 
     Expect(Lexer::TokenType::RightParen);
 
-    auto then = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+    auto then = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
     auto elseExpr = ExprPtr{};
 
     if(currentToken.second == "else")
@@ -279,7 +292,7 @@ ExprPtr Parser::ParseIf()
         if(currentToken.second == "if")
             elseExpr = ParseIf();
         else
-            elseExpr = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+            elseExpr = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
     }
 
     return std::make_unique<IfStatement>(std::move(condition), std::move(then), std::move(elseExpr));
@@ -294,9 +307,40 @@ ExprPtr Parser::ParseWhile()
 
     Expect(Lexer::TokenType::RightParen);
 
-    auto body = ParseStatementList(currentToken.first == Lexer::TokenType::Arrow);
+    auto body = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
 
     return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
+}
+
+ExprPtr Parser::ParseFor()
+{
+    NextToken();
+    Expect(Lexer::TokenType::LeftParen);
+
+    ExprPtr init{};
+    if(currentToken.first != Lexer::TokenType::Semicolon)
+        init = Parse();
+
+    Expect(Lexer::TokenType::Semicolon);
+
+    ExprPtr condition{};
+    if(currentToken.first != Lexer::TokenType::Semicolon)
+        condition = Parse();
+
+    Expect(Lexer::TokenType::Semicolon);
+
+    ExprPtr step{};
+    if(currentToken.first != Lexer::TokenType::RightParen)
+        step = Parse();
+
+    Expect(Lexer::TokenType::RightParen);
+
+    ExprPtr body = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
+
+    return std::make_unique<ForStatement>(
+        std::move(init), std::move(condition),
+        std::move(step), std::move(body)
+    );
 }
 
 ExprPtr Parser::ParseStruct()

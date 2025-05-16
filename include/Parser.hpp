@@ -29,6 +29,7 @@ private:
     ExprPtr ParseVarOrFunc(const std::string& token);
     ExprPtr ParseIf();
     ExprPtr ParseWhile();
+    ExprPtr ParseFor();
     ExprPtr ParseStruct();
 
     std::vector<ExprPtr> ParseArguments();
@@ -56,10 +57,10 @@ private:
         { Lexer::TokenType::BitwiseAnd, 2 },
         { Lexer::TokenType::BitwiseOr, 2 },
         { Lexer::TokenType::BitwiseXor, 2 },
-        { Lexer::TokenType::Less, 1 },
-        { Lexer::TokenType::Greater, 1 },
-        { Lexer::TokenType::LessEqual, 1 },
-        { Lexer::TokenType::GreaterEqual, 1 },
+        { Lexer::TokenType::Less, 2 },
+        { Lexer::TokenType::Greater, 2 },
+        { Lexer::TokenType::LessEqual, 2 },
+        { Lexer::TokenType::GreaterEqual, 2 },
         { Lexer::TokenType::Dot, 4 }
     };
 

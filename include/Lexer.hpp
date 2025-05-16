@@ -1,8 +1,12 @@
 #pragma once
 #include <map>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
+
+using std::operator ""s;
+using std::operator ""sv;
 
 class Lexer
 {
@@ -39,10 +43,10 @@ private:
     Token ProcessOperator(const StringIter& iter);
 
 private:
-    const std::vector<std::string> reservedWords =
+    const std::vector<std::string_view> reservedWords =
     {
-        "var", "fun", "if", "else", "while",
-        "return", "struct"
+        "var"sv, "fun"sv, "if"sv, "else"sv, "while"sv, "for"sv,
+        "return"sv, "break"sv, "continue"sv, "struct"sv
     };
 
 private:
@@ -101,54 +105,54 @@ const static std::map<std::pair<char, char>, Lexer::Token> doubleTokensMap =
     { { '-', '>' }, { Lexer::TokenType::Arrow, "->" } }
 };
 
-const static std::unordered_map<Lexer::TokenType, std::string> tokenTypeMap =
+const static std::unordered_map<Lexer::TokenType, std::string_view> tokenTypeMap =
 {
-    { Lexer::TokenType::None, "None" },
-    { Lexer::TokenType::Reserved, "Reserved" },
-    { Lexer::TokenType::Identifier, "Identifier" },
-    { Lexer::TokenType::Number, "Number" },
-    { Lexer::TokenType::Bool, "Bool" },
-    { Lexer::TokenType::String, "String" },
-    { Lexer::TokenType::Plus, "Plus" },
-    { Lexer::TokenType::Minus, "Minus" },
-    { Lexer::TokenType::Multiply, "Multiply" },
-    { Lexer::TokenType::Divide, "Divide" },
-    { Lexer::TokenType::Modulo, "Modulo" },
-    { Lexer::TokenType::Equal, "Equal" },
-    { Lexer::TokenType::Semicolon, "Semicolon" },
-    { Lexer::TokenType::Comma, "Comma" },
-    { Lexer::TokenType::Dot, "Dot" },
-    { Lexer::TokenType::AddAssign, "AddAssign" },
-    { Lexer::TokenType::SubAssign, "SubAssign" },
-    { Lexer::TokenType::MulAssign, "MulAssign" },
-    { Lexer::TokenType::DivAssign, "DivAssign" },
-    { Lexer::TokenType::ModAssign, "ModAssign" },
-    { Lexer::TokenType::Increment, "Increment" },
-    { Lexer::TokenType::Decrement, "Decrement" },
-    { Lexer::TokenType::And, "And" },
-    { Lexer::TokenType::Or, "Or" },
-    { Lexer::TokenType::Not, "Not" },
-    { Lexer::TokenType::BitwiseAnd, "BitwiseAnd" },
-    { Lexer::TokenType::BitwiseOr, "BitwiseOr" },
-    { Lexer::TokenType::BitwiseXor, "BitwiseXor" },
-    { Lexer::TokenType::BitwiseAndAssign, "BitwiseAndAssign" },
-    { Lexer::TokenType::BitwiseOrAssign, "BitwiseOrAssign" },
-    { Lexer::TokenType::BitwiseXorAssign, "BitwiseXorAssign" },
-    { Lexer::TokenType::IsEqual, "IsEqual" },
-    { Lexer::TokenType::NotEqual, "NotEqual" },
-    { Lexer::TokenType::Less, "Less" },
-    { Lexer::TokenType::Greater, "Greater" },
-    { Lexer::TokenType::LessEqual, "LessEqual" },
-    { Lexer::TokenType::GreaterEqual, "GreaterEqual" },
-    { Lexer::TokenType::Arrow, "Arrow" },
-    { Lexer::TokenType::LeftParen, "LeftParen" },
-    { Lexer::TokenType::RightParen, "RightParen" },
-    { Lexer::TokenType::LeftBrace, "LeftBrace" },
-    { Lexer::TokenType::RightBrace, "RightBrace" },
-    { Lexer::TokenType::EndOfFile, "EndOfFile" }
+    { Lexer::TokenType::None, "None"sv },
+    { Lexer::TokenType::Reserved, "Reserved"sv },
+    { Lexer::TokenType::Identifier, "Identifier"sv },
+    { Lexer::TokenType::Number, "Number"sv },
+    { Lexer::TokenType::Bool, "Bool"sv },
+    { Lexer::TokenType::String, "String"sv },
+    { Lexer::TokenType::Plus, "Plus"sv },
+    { Lexer::TokenType::Minus, "Minus"sv },
+    { Lexer::TokenType::Multiply, "Multiply"sv },
+    { Lexer::TokenType::Divide, "Divide"sv },
+    { Lexer::TokenType::Modulo, "Modulo"sv },
+    { Lexer::TokenType::Equal, "Equal"sv },
+    { Lexer::TokenType::Semicolon, "Semicolon"sv },
+    { Lexer::TokenType::Comma, "Comma"sv },
+    { Lexer::TokenType::Dot, "Dot"sv },
+    { Lexer::TokenType::AddAssign, "AddAssign"sv },
+    { Lexer::TokenType::SubAssign, "SubAssign"sv },
+    { Lexer::TokenType::MulAssign, "MulAssign"sv },
+    { Lexer::TokenType::DivAssign, "DivAssign"sv },
+    { Lexer::TokenType::ModAssign, "ModAssign"sv },
+    { Lexer::TokenType::Increment, "Increment"sv },
+    { Lexer::TokenType::Decrement, "Decrement"sv },
+    { Lexer::TokenType::And, "And"sv },
+    { Lexer::TokenType::Or, "Or"sv },
+    { Lexer::TokenType::Not, "Not"sv },
+    { Lexer::TokenType::BitwiseAnd, "BitwiseAnd"sv },
+    { Lexer::TokenType::BitwiseOr, "BitwiseOr"sv },
+    { Lexer::TokenType::BitwiseXor, "BitwiseXor"sv },
+    { Lexer::TokenType::BitwiseAndAssign, "BitwiseAndAssign"sv },
+    { Lexer::TokenType::BitwiseOrAssign, "BitwiseOrAssign"sv },
+    { Lexer::TokenType::BitwiseXorAssign, "BitwiseXorAssign"sv },
+    { Lexer::TokenType::IsEqual, "IsEqual"sv },
+    { Lexer::TokenType::NotEqual, "NotEqual"sv },
+    { Lexer::TokenType::Less, "Less"sv },
+    { Lexer::TokenType::Greater, "Greater"sv },
+    { Lexer::TokenType::LessEqual, "LessEqual"sv },
+    { Lexer::TokenType::GreaterEqual, "GreaterEqual"sv },
+    { Lexer::TokenType::Arrow, "Arrow"sv },
+    { Lexer::TokenType::LeftParen, "LeftParen"sv },
+    { Lexer::TokenType::RightParen, "RightParen"sv },
+    { Lexer::TokenType::LeftBrace, "LeftBrace"sv },
+    { Lexer::TokenType::RightBrace, "RightBrace"sv },
+    { Lexer::TokenType::EndOfFile, "EndOfFile"sv }
 };
 
-inline std::string TokenTypeToString(const Lexer::TokenType type)
+inline std::string_view TokenTypeToString(const Lexer::TokenType type)
 {
     return tokenTypeMap.at(type);
 }

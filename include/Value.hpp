@@ -42,7 +42,8 @@ inline Value operator%(const Value& left, const Value& right)
     }, left, right);
 }
 
-inline Value operator!(const Value& val)
+// Interferes
+/*inline Value operator!(const Value& val)
 {
     return std::visit([](auto&& v) -> Value
     {
@@ -50,7 +51,7 @@ inline Value operator!(const Value& val)
             return !v;
         return false;
     }, val);
-}
+}*/
 
 inline Value operator&(const Value& left, const Value& right)
 {

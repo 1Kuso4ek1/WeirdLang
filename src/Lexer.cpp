@@ -2,8 +2,6 @@
 
 #include <ranges>
 
-using std::operator ""s;
-
 Lexer::Lexer(std::string&& code)
     : code(std::move(code))
 {
@@ -93,11 +91,11 @@ Lexer::Token Lexer::ProcessOperator(const StringIter& iter)
         if(tokens.empty())
             return currentOp;
 
-        auto prevOp = tokens.back();
+        auto [type, string] = tokens.back();
 
-        if(prevOp.first != TokenType::String && prevOp.second.size() == 1)
+        if(type != TokenType::String && string.size() == 1)
         {
-            const auto p = std::pair{ prevOp.second.at(0), currentOp.second.at(0) };
+            const auto p = std::pair{ string.at(0), currentOp.second.at(0) };
 
             if(doubleTokensMap.contains(p))
             {

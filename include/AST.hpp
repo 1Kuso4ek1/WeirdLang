@@ -157,6 +157,34 @@ struct ReturnExpr final : ExprNode
     ExprPtr value;
 };
 
+struct BreakExpr final : ExprNode
+{
+    struct Exception {};
+
+    explicit BreakExpr() {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        throw Exception{};
+    }
+
+    ExprPtr value;
+};
+
+struct ContinueExpr final : ExprNode
+{
+    struct Exception {};
+
+    explicit ContinueExpr() {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        throw Exception{};
+    }
+
+    ExprPtr value;
+};
+
 struct StatementList final : ExprNode
 {
     explicit StatementList(std::vector<ExprPtr>&& statements, std::vector<ExprPtr>&& args = {})
@@ -180,7 +208,7 @@ struct StatementList final : ExprNode
             return nativeFunc(evaluatedArgs);
         }
 
-        const auto localScope = noInnerScope ? globalScope : std::make_shared<Scope>(scope);
+        const auto localScope = noLocalScope ? globalScope : std::make_shared<Scope>(scope);
         for(int i = 0; i < args.size(); i++)
         {
             if(passedArgs.size() < i + 1)
@@ -198,7 +226,7 @@ struct StatementList final : ExprNode
         return result;
     }
 
-    bool noInnerScope = false;
+    bool noLocalScope = false;
     FunctionType nativeFunc{};
     std::vector<ExprPtr> statements, args, passedArgs;
 };
@@ -250,8 +278,8 @@ struct StructDecl final : ExprNode
 // TODO: Review
 struct StructInstance final : ExprNode
 {
-    explicit StructInstance(std::string name, ScopePtr innerScope)
-        : name(std::move(name)), innerScope(std::move(innerScope))
+    explicit StructInstance(std::string name, ScopePtr localScope)
+        : name(std::move(name)), localScope(std::move(localScope))
     {}
 
     ValuePtr Evaluate(const ScopePtr scope) override
@@ -260,7 +288,7 @@ struct StructInstance final : ExprNode
     }
 
     std::string name; // Redundant
-    ScopePtr innerScope; // Might work instead of this entire struct
+    ScopePtr localScope; // Might work instead of this entire struct
 };
 
 struct ConstructorExpr final : ExprNode
@@ -345,12 +373,56 @@ struct WhileStatement final : ExprNode
         ValuePtr result{};
 
         while(toBool(*condition->Evaluate(scope)))
-            result = body->Evaluate(scope);
+        {
+            try
+            {
+                result = body->Evaluate(scope);
+            }
+            catch(const BreakExpr::Exception&) { break; }
+            catch(const ContinueExpr::Exception&) {}
+            catch(const ReturnExpr::ReturnValue&) { throw; }
+        }
 
         return result;
     }
 
     ExprPtr condition, body;
+};
+
+struct ForStatement final : ExprNode
+{
+    ForStatement(ExprPtr init, ExprPtr condition, ExprPtr step, ExprPtr body)
+        : init(std::move(init)), condition(std::move(condition)),
+          step(std::move(step)), body(std::move(body))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        const auto localScope = std::make_shared<Scope>(scope);
+
+        if(init)
+            init->Evaluate(localScope);
+
+        ValuePtr result{};
+
+        while(!condition || toBool(*condition->Evaluate(localScope)))
+        {
+            try
+            {
+                result = body->Evaluate(localScope);
+            }
+            catch(const BreakExpr::Exception&) { break; }
+            catch(const ContinueExpr::Exception&) {}
+            catch(const ReturnExpr::ReturnValue&) { throw; }
+
+            if(step)
+                step->Evaluate(localScope);
+        }
+
+        return result;
+    }
+
+    ExprPtr init, condition, step, body;
 };
 
 struct FunctionCall final : ExprNode
@@ -407,7 +479,10 @@ struct UnaryExpr final : ExprNode
         {
         case Lexer::TokenType::Plus: return val;
         case Lexer::TokenType::Minus: return std::make_shared<Value>(-*val);
-        case Lexer::TokenType::Not: return std::make_shared<Value>(!*val);
+        case Lexer::TokenType::Not:
+            if(std::holds_alternative<bool>(*val))
+                return std::make_shared<Value>(!std::get<bool>(*val));
+            return std::make_shared<Value>(false);
         case Lexer::TokenType::Increment:
             if(operationFirst)
             {
@@ -457,10 +532,10 @@ struct BinaryExpr final : ExprNode
 
             if(std::holds_alternative<std::any>(*structExpr))
             {
-                const auto any = std::get<5>(*structExpr);
+                const auto any = std::get<std::any>(*structExpr);
                 const auto structInstance = std::any_cast<std::shared_ptr<StructInstance>>(any);
 
-                return right->Evaluate(structInstance->innerScope);
+                return right->Evaluate(structInstance->localScope);
             }
 
             throw std::runtime_error("Dot operator can only be used on structs");
