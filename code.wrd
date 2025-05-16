@@ -1,50 +1,19 @@
 struct Name {
+    fun Name(var name) ->
+        this.name = name + "!!!"
+
     fun GetName() ->
         return name
+
+    fun SetName(var name) ->
+        this.name = name
 
     var name
 }
 
-fun ifElseCheck() {
-    if(10 < 5) -> println("Hello world")
-    else if(10 > 5) -> println("Hi world!")
-    else -> println("What?")
-}
-
-fun whileCheck(var start, var end) {
-    var i = start
-
-    while(i <= end) -> print(i++, " ")
-    println()
-
-    return i
-}
-
-fun greetingCheck() {
-    print("Enter your name: ")
-    var name = input()
-
-    return "Hello, " + name + "!"
-}
-
-fun structCheck() {
-    var first = Name()
-    var second = Name()
-
-    first.name = "First name"
-    second.name = "Second name"
-
-    println("1. Using property: ", first.name)
-    println("2. Using property: ", second.name)
-
-    println("1. Using method: ", first.GetName())
-    println("2. Using method: ", second.GetName())
-}
-
 fun main() {
-    ifElseCheck()
-    structCheck()
-    var i = whileCheck(5, 15)
-    println("Returned: ", i)
-    println("Greeting: ", greetingCheck())
+    var p = Name("Hello")
+    var f = Name("World")
+
+    println(p.GetName(), ", ", f.GetName())
 }

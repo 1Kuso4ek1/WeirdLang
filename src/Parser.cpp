@@ -313,7 +313,13 @@ ExprPtr Parser::ParseStruct()
     {
         const auto token = currentToken.second;
         auto expr = ParseVarOrFunc(token);
-        structDecl->content[std::static_pointer_cast<VariableDecl>(expr)->name] = std::move(expr);
+        auto propertyName = std::static_pointer_cast<VariableDecl>(expr)->name;
+
+        // Only variables are being ordered
+        if(dynamic_cast<VariableDecl*>(expr.get()))
+            structDecl->order.push_back(propertyName);
+
+        structDecl->content[propertyName] = std::move(expr);
     }
 
     NextToken();

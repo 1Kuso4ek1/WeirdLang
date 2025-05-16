@@ -21,6 +21,10 @@ struct Scope;
 struct ExprNode : ASTNode
 {
     virtual ValuePtr Evaluate(std::shared_ptr<Scope>) = 0;
+    virtual std::shared_ptr<ExprNode> Clone(const std::shared_ptr<Scope> scope) const
+    {
+        throw std::runtime_error("Expression is not cloneable");
+    };
 };
 
 using ExprPtr = std::shared_ptr<ExprNode>;
@@ -87,6 +91,11 @@ struct ValueExpr final : ExprNode
         return value;
     }
 
+    ExprPtr Clone(const ScopePtr scope) const override
+    {
+        return std::make_shared<ValueExpr>(*value);
+    }
+
     ValuePtr value;
 };
 
@@ -115,9 +124,14 @@ struct VariableDecl final : ExprNode
     ValuePtr Evaluate(const ScopePtr scope) override
     {
         const auto evaluated = value->Evaluate(scope);
-        scope->Declare(name, std::move(value));
+        scope->Declare(name, value);
 
         return evaluated;
+    }
+
+    ExprPtr Clone(const ScopePtr scope) const override
+    {
+        return std::make_shared<VariableDecl>(name, std::make_shared<ValueExpr>(value->Evaluate(scope)));
     }
 
     std::string name;
@@ -202,11 +216,18 @@ struct FunctionDecl final : ExprNode
         return nullptr;
     }
 
+    // Not really the right way to clone, but this is needed for structs...
+    ExprPtr Clone(const ScopePtr scope) const override
+    {
+        return std::make_shared<StatementList>(*std::static_pointer_cast<StatementList>(body));
+    }
+
     std::string name;
     ExprPtr body;
 };
 
 using StructBody = std::unordered_map<std::string, ExprPtr>;
+using Order = std::vector<std::string>;
 
 struct StructDecl final : ExprNode
 {
@@ -223,6 +244,7 @@ struct StructDecl final : ExprNode
 
     std::string name;
     StructBody content;
+    Order order;
 };
 
 // TODO: Review
@@ -254,13 +276,35 @@ struct ConstructorExpr final : ExprNode
             auto newScope = std::make_shared<Scope>(scope);
 
             for(const auto& [name, value] : structDecl->content)
-                // Temporary solution!!!!! Replace it with specialized Clone() or smth
-                if(const auto var = dynamic_cast<VariableDecl*>(value.get()))
-                    newScope->Declare(name, std::make_shared<VariableDecl>(var->name, std::make_shared<ValueExpr>(var->value->Evaluate(scope))));
-                else if(const auto func = dynamic_cast<FunctionDecl*>(value.get()))
-                    newScope->Declare(name, std::make_shared<StatementList>(*std::static_pointer_cast<StatementList>(func->body)));
+                newScope->Declare(name, value->Clone(newScope));
 
-            auto instance = std::make_shared<StructInstance>(name, std::move(newScope));
+            auto instance = std::make_shared<StructInstance>(name, newScope);
+
+            newScope->Declare("this",
+                std::make_shared<VariableDecl>("this", std::make_shared<ValueExpr>(instance))
+            );
+
+            if(structDecl->content.contains(name))
+            {
+                const auto constructorExpr = structDecl->content[name];
+                auto constructor = std::static_pointer_cast<FunctionDecl>(constructorExpr);
+
+                if(constructor)
+                {
+                    auto body = std::static_pointer_cast<StatementList>(constructor->body);
+                    body->passedArgs = args;
+
+                    body->Evaluate(newScope);
+                }
+            }
+            else if(!args.empty())
+            {
+                for(int i = 0; i < std::min(args.size(), structDecl->order.size()); i++)
+                {
+                    auto fieldValue = args[i]->Evaluate(scope);
+                    newScope->Get(structDecl->order[i]) = std::make_shared<ValueExpr>(*fieldValue);
+                }
+            }
 
             return std::make_shared<Value>(std::any{ instance });
         }
