@@ -573,11 +573,7 @@ struct BinaryExpr final : ExprNode
         case Lexer::TokenType::BitwiseXor: return std::make_shared<Value>(*lval ^ *rval);
         case Lexer::TokenType::And: return std::make_shared<Value>(*lval && *rval);
         case Lexer::TokenType::Or: return std::make_shared<Value>(*lval || *rval);
-        case Lexer::TokenType::Less:
-        {
-            auto val = std::make_shared<Value>(*lval < *rval);
-            return val;
-        }
+        case Lexer::TokenType::Less: return std::make_shared<Value>(*lval < *rval);
         case Lexer::TokenType::Greater: return std::make_shared<Value>(*lval > *rval);
         case Lexer::TokenType::LessEqual: return std::make_shared<Value>(*lval <= *rval);
         case Lexer::TokenType::GreaterEqual: return std::make_shared<Value>(*lval >= *rval);
