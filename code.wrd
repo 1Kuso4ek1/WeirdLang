@@ -1,24 +1,19 @@
-var arrSize = 10
-
-fun fill(var arr)
+struct S
 {
-    for(var i; i < arrSize; i++) # fill the array #
-        a[i] = i
+    fun S(var name) { this.name = name println("Constructed") }
+    fun _S() println("Destroyed")
+
+    var name
 }
 
-fun sum(var arr)
+fun scope()
 {
-    for(var i; i < arrSize; i++)
-        var _ += arr[i] # value of the last operation will be the returned one #
+    var s = S("Hello")
+    println("After creation: ", s.name)
 }
 
 fun main()
 {
-    var a = alloc(arrSize) # allocate space for 10 elements #
-
-    fill(a)
-
-    println("sum: ", sum(a))
-
-    free(a)
+    scope()
+    println("After scope")
 }

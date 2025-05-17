@@ -59,10 +59,10 @@ struct Scope
         if(const auto it = symbols.find(name); it != symbols.end())
             return it->second;
 
-        if(parent)
+        if(const auto ptr = parent.lock())
         {
             // Some kind of caching
-            const auto& result = parent->Get(name);
+            const auto& result = ptr->Get(name);
             return symbols[name] = result;
         }
 
@@ -71,10 +71,11 @@ struct Scope
 
     bool Contains(const std::string& name) const
     {
-        return symbols.contains(name) || (parent && parent->Contains(name));
+        const auto ptr = parent.lock();
+        return symbols.contains(name) || (ptr && ptr->Contains(name));
     }
 
-    std::shared_ptr<Scope> parent;
+    std::weak_ptr<Scope> parent;
     SymbolTable symbols;
 };
 
@@ -110,13 +111,13 @@ struct VariableExpr final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        if(!cached)
+        if(cached.expired())
             cached = scope->Get(name)->Evaluate(scope);
 
-        return cached;
+        return cached.lock();
     }
 
-    ValuePtr cached;
+    std::weak_ptr<Value> cached;
     std::string name;
 };
 
@@ -128,10 +129,16 @@ struct VariableDecl final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
+        if(init)
+            return scope->Get(name)->Evaluate(scope);
+
         const auto evaluated = value->Evaluate(scope);
 
-        if(scope && !scope->Contains(name))
-            scope->Declare(name, value);
+        if(scope/* && !scope->Contains(name)*/)
+            scope->Declare(name, /*name == "this" ? value->Clone(scope) : */std::move(value));
+
+        init = true;
+        value.reset();
 
         return evaluated;
     }
@@ -143,6 +150,8 @@ struct VariableDecl final : ExprNode
 
     std::string name;
     ExprPtr value;
+
+    bool init = false;
 };
 
 struct ReturnExpr final : ExprNode
@@ -289,6 +298,12 @@ struct StructInstance final : ExprNode
         : name(std::move(name)), localScope(std::move(localScope))
     {}
 
+    ~StructInstance() override
+    {
+        if(localScope->Contains("_" + name))
+            localScope->Get("_" + name)->Evaluate(localScope);
+    }
+
     ValuePtr Evaluate(const ScopePtr scope) override
     {
         return nullptr;
@@ -318,17 +333,16 @@ struct ConstructorExpr final : ExprNode
             auto instance = std::make_shared<StructInstance>(name, newScope);
 
             newScope->Declare("this",
-                std::make_shared<VariableDecl>("this", std::make_shared<ValueExpr>(instance))
+                std::make_shared<VariableDecl>("this", std::make_shared<ValueExpr>(std::weak_ptr(instance)))
             );
 
             if(structDecl->content.contains(name))
             {
                 const auto constructorExpr = structDecl->content[name];
-                auto constructor = std::static_pointer_cast<FunctionDecl>(constructorExpr);
 
-                if(constructor)
+                if(const auto constructor = std::static_pointer_cast<FunctionDecl>(constructorExpr))
                 {
-                    auto body = std::static_pointer_cast<StatementList>(constructor->body);
+                    const auto body = std::static_pointer_cast<StatementList>(constructor->body);
                     body->passedArgs = args;
 
                     body->Evaluate(newScope);
@@ -594,10 +608,15 @@ struct BinaryExpr final : ExprNode
             if(std::holds_alternative<std::any>(*structExpr))
             {
                 const auto any = std::get<std::any>(*structExpr);
-                const auto structInstance = std::any_cast<StructInstancePtr>(any);
+
+                StructInstancePtr structInstance;
+                if(any.type().hash_code() == typeid(StructInstancePtr).hash_code())
+                    structInstance = std::any_cast<StructInstancePtr>(any);
+                else // It means we're using 'this' inside the struct
+                    structInstance = std::any_cast<std::weak_ptr<StructInstance>>(any).lock();
 
                 // Might need more testing
-                structInstance->localScope->parent = scope;
+                //structInstance->localScope->parent = scope;
 
                 return right->Evaluate(structInstance->localScope);
             }
@@ -611,14 +630,22 @@ struct BinaryExpr final : ExprNode
         if(dynamic_cast<VariableExpr*>(left.get())
             || dynamic_cast<VariableDecl*>(left.get())
             || dynamic_cast<ValueExpr*>(left.get()))
-            l = cachedLeft ? cachedLeft : cachedLeft = left->Evaluate(scope);
+        {
+            if(cachedLeft.expired())
+                cachedLeft = left->Evaluate(scope);
+            l = cachedLeft.lock();
+        }
         else
             l = left->Evaluate(scope);
 
         if(dynamic_cast<VariableExpr*>(right.get())
             || dynamic_cast<VariableDecl*>(right.get())
             || dynamic_cast<ValueExpr*>(right.get()))
-            r = cachedRight ? cachedRight : cachedRight = right->Evaluate(scope);
+        {
+            if(cachedRight.expired())
+                cachedRight = right->Evaluate(scope);
+            r = cachedRight.lock();
+        }
         else
             r = right->Evaluate(scope);
 
@@ -660,5 +687,5 @@ struct BinaryExpr final : ExprNode
     Lexer::Token token;
 
     ExprPtr left, right;
-    ValuePtr cachedLeft, cachedRight;
+    std::weak_ptr<Value> cachedLeft, cachedRight;
 };

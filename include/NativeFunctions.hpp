@@ -16,20 +16,20 @@ inline std::any GetFromStruct(const ScopePtr& scope, const std::string& name)
 inline void DeclareDefaultFunctions()
 {
     // Functions
-    globalScope->Declare("print", std::make_unique<UndefinedExpr>());
-    globalScope->Declare("println", std::make_unique<UndefinedExpr>());
-    globalScope->Declare("input", std::make_unique<UndefinedExpr>());
-    globalScope->Declare("alloc", std::make_unique<UndefinedExpr>());
-    globalScope->Declare("free", std::make_unique<UndefinedExpr>());
+    globalScope->Declare("print", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("println", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("input", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("alloc", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("free", std::make_shared<UndefinedExpr>());
 
     // Structures
-    globalScope->Declare("array", std::make_unique<StructDecl>("array"));
+    globalScope->Declare("array", std::make_shared<StructDecl>("array"));
 }
 
 inline void DefineDefaultFunctions()
 {
     globalScope->Get("print") =
-        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
             for(const auto& arg : args)
                 std::visit([](auto&& v)
@@ -42,7 +42,7 @@ inline void DefineDefaultFunctions()
         });
 
     globalScope->Get("println") =
-        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
             for(const auto& arg : args)
                 std::visit([](auto&& v)
@@ -57,7 +57,7 @@ inline void DefineDefaultFunctions()
         });
 
     globalScope->Get("input") =
-        std::make_unique<StatementList>([](const auto&, const auto&) -> ValuePtr
+        std::make_shared<StatementList>([](const auto&, const auto&) -> ValuePtr
         {
             std::string input;
             std::getline(std::cin, input);
@@ -66,7 +66,7 @@ inline void DefineDefaultFunctions()
         });
 
     globalScope->Get("alloc") =
-        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
             if(args.empty())
                 throw std::runtime_error("Not enough arguments");
@@ -75,7 +75,7 @@ inline void DefineDefaultFunctions()
         });
 
     globalScope->Get("free") =
-        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
             if(args.empty())
                 throw std::runtime_error("Not enough arguments");
@@ -89,9 +89,9 @@ inline void DefineDefaultFunctions()
 
     auto vec = std::make_shared<std::vector<ValuePtr>>();
 
-    auto array = std::make_unique<StructDecl>("array");
-    array->content["data"] = std::make_unique<VariableDecl>("data", std::make_unique<ValueExpr>(std::move(vec)));
-    array->content["at"] = std::make_unique<FunctionDecl>("at", std::make_unique<StatementList>(
+    auto array = std::make_shared<StructDecl>("array");
+    array->content["data"] = std::make_shared<VariableDecl>("data", std::make_shared<ValueExpr>(std::move(vec)));
+    array->content["at"] = std::make_shared<FunctionDecl>("at", std::make_shared<StatementList>(
             [&](const std::vector<ValuePtr>& args, const ScopePtr& scope) -> ValuePtr
             {
                 if(args.empty())
@@ -102,7 +102,7 @@ inline void DefineDefaultFunctions()
                 return arr->at(std::get<int>(*args[0]));
             }));
     array->content["add"] =
-        std::make_unique<FunctionDecl>("add", std::make_unique<StatementList>(
+        std::make_shared<FunctionDecl>("add", std::make_shared<StatementList>(
             [&](const std::vector<ValuePtr>& args, const ScopePtr& scope) -> ValuePtr
             {
                 if(args.empty())
@@ -116,7 +116,7 @@ inline void DefineDefaultFunctions()
                 return nullptr;
             }));
     array->content["size"] =
-        std::make_unique<FunctionDecl>("size", std::make_unique<StatementList>(
+        std::make_shared<FunctionDecl>("size", std::make_shared<StatementList>(
             [&](const auto&, const ScopePtr& scope) -> ValuePtr
             {
                 const auto arr = std::any_cast<ArrayPtr>(GetFromStruct(scope, "data"));
