@@ -129,16 +129,10 @@ struct VariableDecl final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        if(init)
-            return scope->Get(name)->Evaluate(scope);
-
         const auto evaluated = value->Evaluate(scope);
 
-        if(scope/* && !scope->Contains(name)*/)
+        if(scope && !scope->Contains(name))
             scope->Declare(name, /*name == "this" ? value->Clone(scope) : */std::move(value));
-
-        init = true;
-        value.reset();
 
         return evaluated;
     }
@@ -150,8 +144,6 @@ struct VariableDecl final : ExprNode
 
     std::string name;
     ExprPtr value;
-
-    bool init = false;
 };
 
 struct ReturnExpr final : ExprNode
@@ -301,7 +293,10 @@ struct StructInstance final : ExprNode
     ~StructInstance() override
     {
         if(localScope->Contains("_" + name))
+        {
+            localScope->parent = globalScope;
             localScope->Get("_" + name)->Evaluate(localScope);
+        }
     }
 
     ValuePtr Evaluate(const ScopePtr scope) override

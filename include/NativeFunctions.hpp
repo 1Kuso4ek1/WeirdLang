@@ -20,6 +20,7 @@ inline void DeclareDefaultFunctions()
     globalScope->Declare("println", std::make_shared<UndefinedExpr>());
     globalScope->Declare("input", std::make_shared<UndefinedExpr>());
     globalScope->Declare("alloc", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("realloc", std::make_shared<UndefinedExpr>());
     globalScope->Declare("free", std::make_shared<UndefinedExpr>());
 
     // Structures
@@ -72,6 +73,21 @@ inline void DefineDefaultFunctions()
                 throw std::runtime_error("Not enough arguments");
 
             return std::make_shared<Value>(reinterpret_cast<size_t>(malloc(std::get<int>(*args[0]) * sizeof(Value))));
+        });
+
+    globalScope->Get("realloc") =
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        {
+            if(args.size() < 2)
+                throw std::runtime_error("Not enough arguments");
+
+            return std::make_shared<Value>(
+                reinterpret_cast<size_t>(
+                    realloc(
+                        reinterpret_cast<void*>(std::get<size_t>(*args[0])),
+                        std::get<int>(*args[1]) * sizeof(Value)
+                    )
+                ));
         });
 
     globalScope->Get("free") =
