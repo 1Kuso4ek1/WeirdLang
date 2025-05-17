@@ -89,7 +89,7 @@ struct ValueExpr final : ExprNode
         : value(std::make_shared<Value>(value))
     {}
 
-    ValuePtr Evaluate(ScopePtr scope) override
+    ValuePtr Evaluate(const ScopePtr scope) override
     {
         return value;
     }
@@ -110,9 +110,13 @@ struct VariableExpr final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        return scope->Get(name)->Evaluate(scope);
+        if(!cached)
+            cached = scope->Get(name)->Evaluate(scope);
+
+        return cached;
     }
 
+    ValuePtr cached;
     std::string name;
 };
 
@@ -485,7 +489,15 @@ struct UnaryExpr final : ExprNode
     {
         using namespace ValueOp;
 
-        auto val = expr->Evaluate(scope);
+        ValuePtr val;
+
+        if(dynamic_cast<VariableExpr*>(expr.get())
+            || dynamic_cast<VariableDecl*>(expr.get())
+            || dynamic_cast<ValueExpr*>(expr.get()))
+            val = cachedExpr ? cachedExpr : cachedExpr = expr->Evaluate(scope);
+        else
+            val = expr->Evaluate(scope);
+
         ValuePtr oldValue{};
 
         switch(token.first)
@@ -527,6 +539,7 @@ struct UnaryExpr final : ExprNode
     Lexer::Token token;
 
     ExprPtr expr;
+    ValuePtr cachedExpr;
 
     bool operationFirst = true; // That way we can handle prefix/postfix inc/dec
 };
@@ -557,45 +570,60 @@ struct BinaryExpr final : ExprNode
             throw std::runtime_error("Dot operator can only be used on structs");
         }
 
-        using namespace ValueOp;
+        ValuePtr l, r;
 
-        auto lval = left->Evaluate(scope);
-        const auto rval = right->Evaluate(scope);
+        // TODO: Review
+        if(dynamic_cast<VariableExpr*>(left.get())
+            || dynamic_cast<VariableDecl*>(left.get())
+            || dynamic_cast<ValueExpr*>(left.get()))
+            l = cachedLeft ? cachedLeft : cachedLeft = left->Evaluate(scope);
+        else
+            l = left->Evaluate(scope);
+
+        if(dynamic_cast<VariableExpr*>(right.get())
+            || dynamic_cast<VariableDecl*>(right.get())
+            || dynamic_cast<ValueExpr*>(right.get()))
+            r = cachedRight ? cachedRight : cachedRight = right->Evaluate(scope);
+        else
+            r = right->Evaluate(scope);
+
+        using namespace ValueOp;
 
         switch(token.first)
         {
-        case Lexer::TokenType::Equal: *lval = *rval; return lval;
-        case Lexer::TokenType::AddAssign: *lval = *lval + *rval; return lval;
-        case Lexer::TokenType::SubAssign: *lval = *lval - *rval; return lval;
-        case Lexer::TokenType::MulAssign: *lval = *lval * *rval; return lval;
-        case Lexer::TokenType::DivAssign: *lval = *lval / *rval; return lval;
-        case Lexer::TokenType::ModAssign: *lval = *lval % *rval; return lval;
-        case Lexer::TokenType::BitwiseAndAssign: *lval = *lval & *rval; return lval;
-        case Lexer::TokenType::BitwiseOrAssign: *lval = *lval | *rval; return lval;
-        case Lexer::TokenType::BitwiseXorAssign: *lval = *lval ^ *rval; return lval;
-        case Lexer::TokenType::Plus: return std::make_shared<Value>(*lval + *rval);
-        case Lexer::TokenType::Minus: return std::make_shared<Value>(*lval - *rval);
-        case Lexer::TokenType::Multiply: return std::make_shared<Value>(*lval * *rval);
-        case Lexer::TokenType::Divide: return std::make_shared<Value>(*lval / *rval);
-        case Lexer::TokenType::Modulo: return std::make_shared<Value>(*lval % *rval);
-        case Lexer::TokenType::IsEqual: return std::make_shared<Value>(*lval == *rval);
-        case Lexer::TokenType::NotEqual: return std::make_shared<Value>(*lval != *rval);
-        case Lexer::TokenType::BitwiseAnd: return std::make_shared<Value>(*lval & *rval);
-        case Lexer::TokenType::BitwiseOr: return std::make_shared<Value>(*lval | *rval);
-        case Lexer::TokenType::BitwiseXor: return std::make_shared<Value>(*lval ^ *rval);
-        case Lexer::TokenType::And: return std::make_shared<Value>(*lval && *rval);
-        case Lexer::TokenType::Or: return std::make_shared<Value>(*lval || *rval);
-        case Lexer::TokenType::Less: return std::make_shared<Value>(*lval < *rval);
-        case Lexer::TokenType::Greater: return std::make_shared<Value>(*lval > *rval);
-        case Lexer::TokenType::LessEqual: return std::make_shared<Value>(*lval <= *rval);
-        case Lexer::TokenType::GreaterEqual: return std::make_shared<Value>(*lval >= *rval);
+        case Lexer::TokenType::Equal: *l = *r; return l;
+        case Lexer::TokenType::AddAssign: *l = *l + *r; return l;
+        case Lexer::TokenType::SubAssign: *l = *l - *r; return l;
+        case Lexer::TokenType::MulAssign: *l = *l * *r; return l;
+        case Lexer::TokenType::DivAssign: *l = *l / *r; return l;
+        case Lexer::TokenType::ModAssign: *l = *l % *r; return l;
+        case Lexer::TokenType::BitwiseAndAssign: *l = *l & *r; return l;
+        case Lexer::TokenType::BitwiseOrAssign: *l = *l | *r; return l;
+        case Lexer::TokenType::BitwiseXorAssign: *l = *l ^ *r; return l;
+        case Lexer::TokenType::Plus: return std::make_shared<Value>(*l + *r);
+        case Lexer::TokenType::Minus: return std::make_shared<Value>(*l - *r);
+        case Lexer::TokenType::Multiply: return std::make_shared<Value>(*l * *r);
+        case Lexer::TokenType::Divide: return std::make_shared<Value>(*l / *r);
+        case Lexer::TokenType::Modulo: return std::make_shared<Value>(*l % *r);
+        case Lexer::TokenType::IsEqual: return std::make_shared<Value>(*l == *r);
+        case Lexer::TokenType::NotEqual: return std::make_shared<Value>(*l != *r);
+        case Lexer::TokenType::BitwiseAnd: return std::make_shared<Value>(*l & *r);
+        case Lexer::TokenType::BitwiseOr: return std::make_shared<Value>(*l | *r);
+        case Lexer::TokenType::BitwiseXor: return std::make_shared<Value>(*l ^ *r);
+        case Lexer::TokenType::And: return std::make_shared<Value>(*l && *r);
+        case Lexer::TokenType::Or: return std::make_shared<Value>(*l || *r);
+        case Lexer::TokenType::Less: return std::make_shared<Value>(*l < *r);
+        case Lexer::TokenType::Greater: return std::make_shared<Value>(*l > *r);
+        case Lexer::TokenType::LessEqual: return std::make_shared<Value>(*l <= *r);
+        case Lexer::TokenType::GreaterEqual: return std::make_shared<Value>(*l >= *r);
         default: break;
         }
 
-        return lval;
+        return l;
     }
 
     Lexer::Token token;
 
     ExprPtr left, right;
+    ValuePtr cachedLeft, cachedRight;
 };
