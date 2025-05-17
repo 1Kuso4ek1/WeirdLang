@@ -19,6 +19,8 @@ inline void DeclareDefaultFunctions()
     globalScope->Declare("print", std::make_unique<UndefinedExpr>());
     globalScope->Declare("println", std::make_unique<UndefinedExpr>());
     globalScope->Declare("input", std::make_unique<UndefinedExpr>());
+    globalScope->Declare("alloc", std::make_unique<UndefinedExpr>());
+    globalScope->Declare("free", std::make_unique<UndefinedExpr>());
 
     // Structures
     globalScope->Declare("array", std::make_unique<StructDecl>("array"));
@@ -30,12 +32,11 @@ inline void DefineDefaultFunctions()
         std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
             for(const auto& arg : args)
-                if(arg)
-                    std::visit([](auto&& v)
-                    {
-                        if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
-                            std::print("{}", v);
-                    }, *arg);
+                std::visit([](auto&& v)
+                {
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
+                        std::print("{}", v);
+                }, *arg);
 
             return nullptr;
         });
@@ -44,12 +45,11 @@ inline void DefineDefaultFunctions()
         std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
             for(const auto& arg : args)
-                if(arg)
-                    std::visit([](auto&& v)
-                    {
-                        if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
-                            std::print("{}", v);
-                    }, *arg);
+                std::visit([](auto&& v)
+                {
+                    if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
+                        std::print("{}", v);
+                }, *arg);
 
             std::println("");
 
@@ -63,6 +63,26 @@ inline void DefineDefaultFunctions()
             std::getline(std::cin, input);
 
             return std::make_shared<Value>(input);
+        });
+
+    globalScope->Get("alloc") =
+        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        {
+            if(args.empty())
+                throw std::runtime_error("Not enough arguments");
+
+            return std::make_shared<Value>(reinterpret_cast<size_t>(malloc(std::get<int>(*args[0]) * sizeof(Value))));
+        });
+
+    globalScope->Get("free") =
+        std::make_unique<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        {
+            if(args.empty())
+                throw std::runtime_error("Not enough arguments");
+
+            free(reinterpret_cast<void*>(std::get<size_t>(*args[0])));
+
+            return nullptr;
         });
 
     using ArrayPtr = std::shared_ptr<std::vector<ValuePtr>>;

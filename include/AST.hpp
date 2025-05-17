@@ -479,9 +479,37 @@ struct FunctionCall final : ExprNode
     std::vector<ExprPtr> args;
 };
 
+struct IndexExpr final : ExprNode
+{
+    IndexExpr(ExprPtr expr, ExprPtr index)
+        : expr(std::move(expr)), index(std::move(index))
+    {}
+
+    ValuePtr Evaluate(const ScopePtr scope) override
+    {
+        const auto ptrValue = expr->Evaluate(scope);
+
+        if(std::holds_alternative<size_t>(*ptrValue))
+        {
+            const auto indexValue = index->Evaluate(scope);
+
+            const int idx = std::get<int>(*indexValue);
+
+            const auto base = std::get<size_t>(*ptrValue);
+            const auto element = base + (idx * sizeof(Value));
+
+            return { reinterpret_cast<Value*>(element), [](Value*) {} };
+        }
+
+        throw std::runtime_error("Index operator can only be used on pointers");
+    }
+
+    ExprPtr expr, index;
+};
+
 struct UnaryExpr final : ExprNode
 {
-    explicit UnaryExpr(Lexer::Token token, ExprPtr expr)
+    UnaryExpr(Lexer::Token token, ExprPtr expr)
         : token(std::move(token)), expr(std::move(expr))
     {}
 
@@ -529,6 +557,13 @@ struct UnaryExpr final : ExprNode
             oldValue = std::make_shared<Value>(*val);
             *val = *val - 1;
             return oldValue;
+
+        case Lexer::TokenType::Pointer:
+        {
+            if(std::holds_alternative<size_t>(*val))
+                return { reinterpret_cast<Value*>(std::get<size_t>(*val)), [](auto) {} };
+            return std::make_shared<Value>(reinterpret_cast<size_t>(val.get()));
+        }
 
         default: break;
         }

@@ -18,10 +18,10 @@ public:
         Semicolon, Comma, Dot,
         AddAssign, SubAssign, MulAssign, DivAssign, ModAssign,
         Increment, Decrement,
-        And, Or, BitwiseAnd, BitwiseOr, BitwiseXor, Not,
+        And, Or, BitwiseAnd, BitwiseOr, BitwiseXor, Not, Pointer,
         BitwiseAndAssign, BitwiseOrAssign, BitwiseXorAssign,
         IsEqual, NotEqual, Less, Greater, LessEqual, GreaterEqual, Arrow,
-        LeftParen, RightParen, LeftBrace, RightBrace,
+        LeftParen, RightParen, LeftBrace, RightBrace, LeftBracket, RightBracket,
         EndOfFile
     };
 
@@ -74,10 +74,13 @@ const static std::unordered_map<char, Lexer::Token> operatorTokensMap =
     { '.', { Lexer::TokenType::Dot, "." } },
     { '{', { Lexer::TokenType::LeftBrace, "{" } },
     { '}', { Lexer::TokenType::RightBrace, "}" } },
+    { '[', { Lexer::TokenType::LeftBracket, "[" } },
+    { ']', { Lexer::TokenType::RightBracket, "]" } },
     { '&', { Lexer::TokenType::BitwiseAnd, "&" } },
     { '|', { Lexer::TokenType::BitwiseOr, "|" } },
     { '^', { Lexer::TokenType::BitwiseXor, "^" } },
-    { '!', { Lexer::TokenType::Not, "!" } }
+    { '!', { Lexer::TokenType::Not, "!" } },
+    { '$', { Lexer::TokenType::Pointer, "$" } }
 };
 
 const static std::map<std::pair<char, char>, Lexer::Token> doubleTokensMap =

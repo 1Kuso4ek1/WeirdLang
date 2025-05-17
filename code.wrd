@@ -1,34 +1,24 @@
-struct Name {
-    fun Name(var name)
-        this.name = name + "!!!"
+var arrSize = 10
 
-    fun GetName()
-        name
-
-    fun SetName(var name)
-        this.name = name
-
-    var name
+fun fill(var arr)
+{
+    for(var i; i < arrSize; i++) # fill the array #
+        a[i] = i
 }
 
-fun main() {
-    var p = Name("Hello")
-    var f = Name("World")
+fun sum(var arr)
+{
+    for(var i; i < arrSize; i++)
+        var _ += arr[i] # value of the last operation will be the returned one #
+}
 
-    var i = 0
-    while(i++ < 10)
-    {
-        if(i > 5 && i < 8) continue
-        else if(i > 8) break
+fun main()
+{
+    var a = alloc(arrSize) # allocate space for 10 elements #
 
-        print(i, " ")
-    }
-    println()
+    fill(a)
 
-    for(var j = i; j <= 30; j++)
-        print(j, " ")
+    println("sum: ", sum(a))
 
-    println()
-
-    println(p.GetName(), ", ", f.GetName())
+    free(a)
 }

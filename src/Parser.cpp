@@ -97,6 +97,17 @@ ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
 
     while(true)
     {
+        if(currentToken.first == Lexer::TokenType::LeftBracket)
+        {
+            NextToken();
+            auto index = Parse();
+            Expect(Lexer::TokenType::RightBracket);
+
+            left = std::make_shared<IndexExpr>(std::move(left), std::move(index));
+
+            continue;
+        }
+
         const int currentPrec = GetPrecedence();
 
         if(currentPrec < leftPrec)
