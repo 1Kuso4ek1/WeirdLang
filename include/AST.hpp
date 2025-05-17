@@ -56,13 +56,17 @@ struct Scope
 
     ExprPtr& Get(const std::string& name)
     {
-        if(symbols.contains(name))
-            return symbols.at(name);
+        if(const auto it = symbols.find(name); it != symbols.end())
+            return it->second;
 
         if(parent)
-            return parent->Get(name);
+        {
+            // Some kind of caching
+            const auto& result = parent->Get(name);
+            return symbols[name] = result;
+        }
 
-        throw std::runtime_error("Symbol '" + name + "' not found");
+        throw std::runtime_error(std::format("Symbol '{}' not found", name));
     }
 
     bool Contains(const std::string& name) const
@@ -106,9 +110,7 @@ struct VariableExpr final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        if(scope->Contains(name))
-            return scope->Get(name)->Evaluate(scope);
-        throw std::runtime_error(std::format("Symbol '{}' not found", name));
+        return scope->Get(name)->Evaluate(scope);
     }
 
     std::string name;
@@ -209,7 +211,7 @@ struct StatementList final : ExprNode
             return nativeFunc(evaluatedArgs, scope);
         }
 
-        const auto localScope = noLocalScope ? globalScope : std::make_shared<Scope>(scope);
+        const auto localScope = noLocalScope ? scope : std::make_shared<Scope>(scope);
         for(int i = 0; i < args.size(); i++)
         {
             if(passedArgs.size() < i + 1)
@@ -266,7 +268,7 @@ struct StructDecl final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        scope->Declare(name, std::make_unique<StructDecl>(*this));
+        scope->Declare(name, std::make_shared<StructDecl>(*this));
 
         return nullptr;
     }
@@ -355,7 +357,7 @@ struct IfStatement final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        if(toBool(*condition->Evaluate(scope)))
+        if(ValueOp::toBool(*condition->Evaluate(scope)))
             return then->Evaluate(scope);
         if(elseExpr)
             return elseExpr->Evaluate(scope);
@@ -375,7 +377,7 @@ struct WhileStatement final : ExprNode
     {
         ValuePtr result{};
 
-        while(toBool(*condition->Evaluate(scope)))
+        while(ValueOp::toBool(*condition->Evaluate(scope)))
         {
             try
             {
@@ -401,14 +403,20 @@ struct ForStatement final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        const auto localScope = std::make_shared<Scope>(scope);
+        if((!init || !body) && !condition)
+            return nullptr;
+
+        auto localScope = scope;
 
         if(init)
+        {
+            localScope = std::make_shared<Scope>(scope);
             init->Evaluate(localScope);
+        }
 
         ValuePtr result{};
 
-        while(!condition || toBool(*condition->Evaluate(localScope)))
+        while(!condition || ValueOp::toBool(*condition->Evaluate(localScope)))
         {
             try
             {
@@ -475,6 +483,8 @@ struct UnaryExpr final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
+        using namespace ValueOp;
+
         auto val = expr->Evaluate(scope);
         ValuePtr oldValue{};
 
@@ -546,6 +556,8 @@ struct BinaryExpr final : ExprNode
 
             throw std::runtime_error("Dot operator can only be used on structs");
         }
+
+        using namespace ValueOp;
 
         auto lval = left->Evaluate(scope);
         const auto rval = right->Evaluate(scope);

@@ -20,7 +20,7 @@ Parser::Parser(Lexer& lexer)
             statements.emplace_back(std::move(expr));
     }
 
-    root = std::make_unique<StatementList>(std::move(statements));
+    root = std::make_shared<StatementList>(std::move(statements));
     std::static_pointer_cast<StatementList>(root)->noLocalScope = true;
 }
 
@@ -59,7 +59,7 @@ ExprPtr Parser::ParsePrimary()
 
     case Lexer::TokenType::Bool:
     {
-        auto expr = std::make_unique<ValueExpr>(currentToken.second == "true");
+        auto expr = std::make_shared<ValueExpr>(currentToken.second == "true");
 
         NextToken();
 
@@ -87,8 +87,7 @@ ExprPtr Parser::ParseBinaryRight(const int leftPrec, ExprPtr left)
     if(currentToken.first == Lexer::TokenType::Increment
         || currentToken.first == Lexer::TokenType::Decrement)
     {
-        // TODO: Should I change make_uniques to make_shared?
-        auto expr = std::make_unique<UnaryExpr>(currentToken, std::move(left));
+        auto expr = std::make_shared<UnaryExpr>(currentToken, std::move(left));
         expr->operationFirst = false;
 
         NextToken();
@@ -124,7 +123,7 @@ ExprPtr Parser::ParseUnary()
 
     auto expr = ParsePrimary();
 
-    return std::make_unique<UnaryExpr>(operation, std::move(expr));
+    return std::make_shared<UnaryExpr>(operation, std::move(expr));
 }
 
 ExprPtr Parser::ParseReserved()
@@ -174,13 +173,13 @@ ExprPtr Parser::ParseIdentifier()
         {
             auto node = globalScope->Get(name).get();
             if(dynamic_cast<StructDecl*>(node))
-                return std::make_unique<ConstructorExpr>(std::move(name), std::move(args));
+                return std::make_shared<ConstructorExpr>(std::move(name), std::move(args));
         }
 
-        return std::make_unique<FunctionCall>(std::move(name), std::move(args));
+        return std::make_shared<FunctionCall>(std::move(name), std::move(args));
     }
 
-    return std::make_unique<VariableExpr>(name);
+    return std::make_shared<VariableExpr>(name);
 }
 
 ExprPtr Parser::ParseNumber()
@@ -197,7 +196,7 @@ ExprPtr Parser::ParseNumber()
 
     NextToken();
 
-    return std::make_unique<ValueExpr>(value);
+    return std::make_shared<ValueExpr>(value);
 }
 
 ExprPtr Parser::ParseString()
@@ -205,7 +204,7 @@ ExprPtr Parser::ParseString()
     const auto value = currentToken.second;
     NextToken();
 
-    return std::make_unique<ValueExpr>(value);
+    return std::make_shared<ValueExpr>(value);
 }
 
 ExprPtr Parser::ParseStatementList(const bool singleExpr)
@@ -226,7 +225,7 @@ ExprPtr Parser::ParseStatementList(const bool singleExpr)
     if(!singleExpr)
         Expect(Lexer::TokenType::RightBrace);
 
-    return std::make_unique<StatementList>(std::move(list));
+    return std::make_shared<StatementList>(std::move(list));
 }
 
 std::vector<ExprPtr> Parser::ParseArguments()
@@ -258,8 +257,8 @@ ExprPtr Parser::ParseVarOrFunc(const std::string& token)
 
     if(token == "var")
     {
-        //globalScope->Declare(name, std::make_unique<ValueExpr>(0));
-        return std::make_unique<VariableDecl>(name, std::make_unique<ValueExpr>(0));
+        //globalScope->Declare(name, std::make_shared<ValueExpr>(0));
+        return std::make_shared<VariableDecl>(name, std::make_shared<ValueExpr>(0));
     }
 
     NextToken();
@@ -267,7 +266,7 @@ ExprPtr Parser::ParseVarOrFunc(const std::string& token)
     auto args = ParseArguments();
     const auto list = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
 
-    return std::make_unique<FunctionDecl>(name, std::make_unique<StatementList>(
+    return std::make_shared<FunctionDecl>(name, std::make_shared<StatementList>(
         std::move(dynamic_cast<StatementList*>(list.get())->statements),
         std::move(args)
     ));
@@ -295,7 +294,7 @@ ExprPtr Parser::ParseIf()
             elseExpr = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
     }
 
-    return std::make_unique<IfStatement>(std::move(condition), std::move(then), std::move(elseExpr));
+    return std::make_shared<IfStatement>(std::move(condition), std::move(then), std::move(elseExpr));
 }
 
 ExprPtr Parser::ParseWhile()
@@ -309,7 +308,7 @@ ExprPtr Parser::ParseWhile()
 
     auto body = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
 
-    return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
+    return std::make_shared<WhileStatement>(std::move(condition), std::move(body));
 }
 
 ExprPtr Parser::ParseFor()
@@ -335,9 +334,10 @@ ExprPtr Parser::ParseFor()
 
     Expect(Lexer::TokenType::RightParen);
 
-    ExprPtr body = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
+    auto body = ParseStatementList(currentToken.first != Lexer::TokenType::LeftBrace);
+    std::static_pointer_cast<StatementList>(body)->noLocalScope = true;
 
-    return std::make_unique<ForStatement>(
+    return std::make_shared<ForStatement>(
         std::move(init), std::move(condition),
         std::move(step), std::move(body)
     );
@@ -349,7 +349,7 @@ ExprPtr Parser::ParseStruct()
     const auto name = currentToken.second;
     NextToken();
 
-    auto structDecl = std::make_unique<StructDecl>(name);
+    auto structDecl = std::make_shared<StructDecl>(name);
 
     Expect(Lexer::TokenType::LeftBrace);
 

@@ -6,6 +6,9 @@
 using Value = std::variant<int, float, double, bool, std::string, std::any>;
 using ValuePtr = std::shared_ptr<Value>;
 
+namespace ValueOp
+{
+
 inline Value operator-(const Value& val)
 {
     return std::visit([](auto&& v) -> Value { return -v;  }, val);
@@ -42,8 +45,7 @@ inline Value operator%(const Value& left, const Value& right)
     }, left, right);
 }
 
-// Interferes
-/*inline Value operator!(const Value& val)
+inline Value operator!(const Value& val)
 {
     return std::visit([](auto&& v) -> Value
     {
@@ -51,7 +53,7 @@ inline Value operator%(const Value& left, const Value& right)
             return !v;
         return false;
     }, val);
-}*/
+}
 
 inline Value operator&(const Value& left, const Value& right)
 {
@@ -170,4 +172,6 @@ inline bool toBool(const Value& val)
             return static_cast<bool>(v);
         return false;
     }, val);
+}
+
 }
