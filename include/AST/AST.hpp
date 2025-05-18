@@ -56,10 +56,15 @@ struct VariableDecl final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
+        if(!value)
+            return cached.lock();
+
         const auto evaluated = value->Evaluate(scope);
 
         if(scope)
             scope->Declare(name, /*name == "this" ? value->Clone(scope) : */std::move(value));
+
+        cached = evaluated;
 
         return evaluated;
     }
@@ -70,6 +75,7 @@ struct VariableDecl final : ExprNode
     }
 
     std::string name;
+    std::weak_ptr<Value> cached;
     ExprPtr value;
 };
 
@@ -542,10 +548,11 @@ struct BinaryExpr final : ExprNode
                 else // It means we're using 'this' inside the struct
                     structInstance = std::any_cast<std::weak_ptr<StructInstance>>(any).lock();
 
-                // Might need more testing
-                //structInstance->localScope->parent = scope;
+                // TODO: Review...
+                const auto combinedScope = std::make_shared<Scope>(scope);
+                combinedScope->symbols = structInstance->localScope->symbols;
 
-                return right->Evaluate(structInstance->localScope);
+                return right->Evaluate(combinedScope);
             }
 
             throw std::runtime_error("Dot operator can only be used on structs");
