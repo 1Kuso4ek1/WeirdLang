@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 
-#include "AST.hpp"
+#include "AST/AST.hpp"
 #include "Lexer.hpp"
 
 class Parser

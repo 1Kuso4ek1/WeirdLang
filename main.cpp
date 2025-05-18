@@ -27,9 +27,11 @@ int main()
 
     DefineDefaultFunctions();
 
-    parser.GetRoot()->Evaluate(globalScope);
+    const auto programScope = std::make_shared<Scope>(globalScope);
 
-    if(const auto result = globalScope->Get("main")->Evaluate(globalScope))
+    parser.GetRoot()->Evaluate(programScope);
+
+    if(const auto result = programScope->Get("main")->Evaluate(programScope))
         std::visit([](auto&& v)
         {
             if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)

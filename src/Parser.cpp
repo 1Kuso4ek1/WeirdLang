@@ -269,7 +269,7 @@ ExprPtr Parser::ParseVarOrFunc(const std::string& token)
     if(token == "var")
     {
         //globalScope->Declare(name, std::make_shared<ValueExpr>(0));
-        return std::make_shared<VariableDecl>(name, std::make_shared<ValueExpr>(0));
+        return std::make_shared<VariableDecl>(name, std::make_shared<ValueExpr>(Value(0)));
     }
 
     NextToken();

@@ -8,8 +8,10 @@ add_executable(WeirdLang main.cpp
         include/Lexer.hpp
         src/Parser.cpp
         include/Parser.hpp
-        include/AST.hpp
+        include/AST/AST.hpp
         include/NativeFunctions.hpp
-        include/Value.hpp)
+        include/AST/Value.hpp
+        include/AST/Scope.hpp
+        include/AST/Base.hpp)
 
 target_include_directories(WeirdLang PUBLIC include)

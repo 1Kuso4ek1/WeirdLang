@@ -1,93 +1,20 @@
 // TODO: Refactor (move nodes to separate files)
 #pragma once
-#include <complex>
-#include <format>
-#include <functional>
-#include <memory>
-#include <utility>
 #include <variant>
 
 #include "Lexer.hpp"
-#include "Value.hpp"
+#include "Scope.hpp"
 
-struct ASTNode
-{
-    ASTNode() = default;
-    virtual ~ASTNode() = default;
-};
-
-struct Scope;
-
-struct ExprNode : ASTNode
-{
-    virtual ValuePtr Evaluate(std::shared_ptr<Scope>) = 0;
-    virtual std::shared_ptr<ExprNode> Clone(const std::shared_ptr<Scope> scope) const
-    {
-        throw std::runtime_error("Expression is not cloneable");
-    };
-};
-
-using ExprPtr = std::shared_ptr<ExprNode>;
-using SymbolTable = std::unordered_map<std::string, ExprPtr>;
-
-struct UndefinedExpr final : ExprNode
-{
-    ValuePtr Evaluate(const std::shared_ptr<Scope> scope) override
-    {
-        throw std::runtime_error("Evaluation of an undefined expression");
-    }
-};
-
-struct Scope
-{
-    explicit Scope(const std::shared_ptr<Scope>& parent = {})
-        : parent(parent)
-    {}
-
-    void Declare(const std::string& name, ExprPtr value)
-    {
-        symbols[name] = std::move(value);
-    }
-
-    void Reset()
-    {
-        symbols.clear();
-    }
-
-    ExprPtr& Get(const std::string& name)
-    {
-        if(const auto it = symbols.find(name); it != symbols.end())
-            return it->second;
-
-        if(const auto ptr = parent.lock())
-        {
-            // Some kind of caching
-            const auto& result = ptr->Get(name);
-            return symbols[name] = result;
-        }
-
-        throw std::runtime_error(std::format("Symbol '{}' not found", name));
-    }
-
-    bool Contains(const std::string& name) const
-    {
-        const auto ptr = parent.lock();
-        return symbols.contains(name) || (ptr && ptr->Contains(name));
-    }
-
-    std::weak_ptr<Scope> parent;
-    SymbolTable symbols;
-};
-
-using ScopePtr = std::shared_ptr<Scope>;
 using FunctionType = std::function<ValuePtr(const std::vector<ValuePtr>&, ScopePtr)>;
-
-inline auto globalScope = std::make_shared<Scope>();
 
 struct ValueExpr final : ExprNode
 {
     explicit ValueExpr(const Value& value)
         : value(std::make_shared<Value>(value))
+    {}
+
+    explicit ValueExpr(ValuePtr value)
+        : value(std::move(value))
     {}
 
     ValuePtr Evaluate(const ScopePtr scope) override
@@ -131,7 +58,7 @@ struct VariableDecl final : ExprNode
     {
         const auto evaluated = value->Evaluate(scope);
 
-        if(scope && !scope->Contains(name))
+        if(scope)
             scope->Declare(name, /*name == "this" ? value->Clone(scope) : */std::move(value));
 
         return evaluated;
@@ -217,6 +144,7 @@ struct StatementList final : ExprNode
         }
 
         const auto localScope = noLocalScope ? scope : std::make_shared<Scope>(scope);
+
         for(int i = 0; i < args.size(); i++)
         {
             if(passedArgs.size() < i + 1)
@@ -293,10 +221,7 @@ struct StructInstance final : ExprNode
     ~StructInstance() override
     {
         if(localScope->Contains("_" + name))
-        {
-            localScope->parent = globalScope;
             localScope->Get("_" + name)->Evaluate(localScope);
-        }
     }
 
     ValuePtr Evaluate(const ScopePtr scope) override
@@ -320,7 +245,7 @@ struct ConstructorExpr final : ExprNode
     {
         if(const auto structDecl = dynamic_cast<StructDecl*>(scope->Get(name).get()))
         {
-            auto newScope = std::make_shared<Scope>(scope);
+            auto newScope = std::make_shared<Scope>(globalScope); // A little 'hack'...
 
             for(const auto& [name, value] : structDecl->content)
                 newScope->Declare(name, value->Clone(newScope));
@@ -457,18 +382,25 @@ struct FunctionCall final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        if(scope->Contains(name))
+        auto localScope = std::make_shared<Scope>(scope);
+
+        if(localScope->Contains(name))
         {
-            const auto expr = scope->Get(name).get();
+            const auto expr = localScope->Get(name).get();
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
+                for(auto& i : args)
+                    if(!std::dynamic_pointer_cast<ValueExpr>(i))
+                        i = std::make_shared<ValueExpr>(i->Evaluate(localScope));
+
                 cast->passedArgs = args;
+                cast->noLocalScope = true;
 
                 ValuePtr result{};
 
                 try
                 {
-                    result = expr->Evaluate(scope);
+                    result = expr->Evaluate(localScope);
                 }
                 catch(const ReturnExpr::ReturnValue& returnExpr)
                 {

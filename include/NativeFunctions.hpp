@@ -2,7 +2,7 @@
 #include <iostream>
 #include <print>
 
-#include "AST.hpp"
+#include "AST/AST.hpp"
 
 inline std::any GetFromStruct(const ScopePtr& scope, const std::string& name)
 {
