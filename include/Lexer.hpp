@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 #include <map>
 #include <string>
 #include <string_view>
@@ -8,6 +9,8 @@
 using std::operator ""s;
 using std::operator ""sv;
 
+// Not really the single responsibility class
+// It loads and preprocesses the code (finds, loads and inserts imported files)
 class Lexer
 {
 public:
@@ -29,7 +32,7 @@ public:
     using TokenIter = std::vector<Token>::iterator;
     using StringIter = std::string::const_iterator;
 
-    explicit Lexer(std::string&& code);
+    explicit Lexer(const std::filesystem::path& path);
     ~Lexer() = default;
 
     Token NextToken();
@@ -43,16 +46,19 @@ private:
     Token ProcessOperator(const StringIter& iter);
 
 private:
+    static std::string LoadCode(const std::filesystem::path& path);
+
+private:
     const std::vector<std::string_view> reservedWords =
     {
         "var"sv, "fun"sv, "if"sv, "else"sv, "while"sv, "for"sv,
-        "return"sv, "break"sv, "continue"sv, "struct"sv
+        "return"sv, "break"sv, "continue"sv, "struct"sv, "import"sv
     };
 
 private:
     const std::string code;
 
-    bool comment = false;
+    bool comment{}, importFilename{};
     std::vector<Token> tokens;
     TokenIter current;
 };

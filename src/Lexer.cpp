@@ -1,10 +1,13 @@
 #include "Lexer.hpp"
 
+#include <fstream>
 #include <ranges>
 
-Lexer::Lexer(std::string&& code)
-    : code(std::move(code))
+Lexer::Lexer(const std::filesystem::path& path)
+    : code(LoadCode(path))
 {
+    std::filesystem::current_path(path.parent_path());
+
     Tokenize();
 
     current = tokens.begin();
@@ -25,11 +28,29 @@ void Lexer::Tokenize()
         if(*i == '#')
             comment = !comment;
         else if(std::isalpha(*i) || *i == '_')
+        {
             tokens.emplace_back(ProcessIdentifier(i));
+            if(tokens.back().second == "import")
+            {
+                importFilename = true;
+                tokens.pop_back();
+            }
+        }
         else if(std::isdigit(*i))
             tokens.emplace_back(ProcessNumber(i));
         else if(*i == '"')
+        {
             tokens.emplace_back(ProcessString(++i));
+            if(importFilename)
+            {
+                Lexer importLexer(tokens.back().second);
+
+                tokens.insert(tokens.end(), importLexer.tokens.begin(), importLexer.tokens.end());
+
+                importFilename = false;
+                tokens.pop_back();
+            }
+        }
         else
             tokens.emplace_back(ProcessOperator(i));
     }
@@ -59,7 +80,7 @@ Lexer::Token Lexer::ProcessNumber(StringIter& iter)
 {
     auto value = ""s;
 
-    bool floatingPoint = false;
+    bool floatingPoint{};
 
     while(std::isdigit(*iter)
         || (*iter == '.' && std::isdigit(*(iter + 1)))
@@ -108,4 +129,20 @@ Lexer::Token Lexer::ProcessOperator(const StringIter& iter)
     }
 
     return { TokenType::None, "" };
+}
+
+std::string Lexer::LoadCode(const std::filesystem::path& path)
+{
+    std::ifstream file(path);
+    if(!file.is_open())
+        throw std::runtime_error(std::format("Failed to open file {}. Current path: {}", path.string(), std::filesystem::current_path().string()));
+
+    std::string code;
+    std::copy(
+        std::istreambuf_iterator(file),
+        std::istreambuf_iterator<char>(),
+        std::back_inserter(code)
+    );
+
+    return code;
 }

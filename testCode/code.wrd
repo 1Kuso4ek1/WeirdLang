@@ -1,27 +1,4 @@
-struct S
-{
-    fun S()
-    {
-        data = alloc(0)
-        println("Constructed")
-    }
-
-    fun _S()
-    {
-        free(data)
-        println("Destroyed. Size: ", size)
-    }
-
-    fun add(var a)
-    {
-        size++
-        data = realloc(data, size)
-        data[size - 1] = a
-    }
-
-    var data
-    var size
-}
+import "include/vector.wrd"
 
 fun printData(var s, var sPtr)
 {
@@ -35,7 +12,7 @@ fun printData(var s, var sPtr)
 
 fun main()
 {
-    var s = S()
+    var s = vector()
     var sPtr = $s
 
     var a = 5

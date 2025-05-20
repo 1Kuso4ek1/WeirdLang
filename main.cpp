@@ -4,25 +4,12 @@
 #include <fstream>
 #include <print>
 
-std::string LoadCode(std::string&& path)
+int main(int argc, char** argv)
 {
-    std::ifstream file(path);
-    if(!file.is_open())
-        throw std::runtime_error("Failed to open file");
+    if(argc < 2)
+        throw std::runtime_error("You should specify the filename");
 
-    std::string code;
-    std::copy(
-        std::istreambuf_iterator(file),
-        std::istreambuf_iterator<char>(),
-        std::back_inserter(code)
-    );
-
-    return code;
-}
-
-int main()
-{
-    Lexer lexer(LoadCode("../code.wrd"));
+    Lexer lexer({ argv[1] });
     Parser parser(lexer);
 
     DefineDefaultFunctions();

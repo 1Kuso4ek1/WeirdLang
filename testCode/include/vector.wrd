@@ -1,0 +1,24 @@
+struct vector
+{
+    fun vector()
+    {
+        data = alloc(0)
+        println("Constructed")
+    }
+
+    fun _vector()
+    {
+        free(data)
+        println("Destroyed. Size: ", size)
+    }
+
+    fun add(var a)
+    {
+        size++
+        data = realloc(data, size)
+        data[size - 1] = a
+    }
+
+    var data
+    var size
+}
