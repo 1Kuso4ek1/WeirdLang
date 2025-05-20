@@ -388,18 +388,24 @@ struct FunctionCall final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        auto localScope = std::make_shared<Scope>(scope);
+        const auto localScope = std::make_shared<Scope>(scope);
 
         if(localScope->Contains(name))
         {
             const auto expr = localScope->Get(name).get();
             if(const auto cast = dynamic_cast<StatementList*>(expr))
             {
-                for(auto& i : args)
-                    if(!std::dynamic_pointer_cast<ValueExpr>(i))
-                        i = std::make_shared<ValueExpr>(i->Evaluate(localScope));
+                std::vector<ExprPtr> evaluatedArgs;
+                evaluatedArgs.reserve(args.size());
 
-                cast->passedArgs = args;
+                for(const auto& i : args)
+                    evaluatedArgs.emplace_back(
+                        std::dynamic_pointer_cast<ValueExpr>(i)
+                        ? i
+                        : std::make_shared<ValueExpr>(i->Evaluate(localScope))
+                    );
+
+                cast->passedArgs = evaluatedArgs;
                 cast->noLocalScope = true;
 
                 ValuePtr result{};

@@ -1,29 +1,48 @@
 struct S
 {
-    fun S(var name)
+    fun S()
     {
-        this.name = name
+        data = alloc(0)
         println("Constructed")
     }
 
     fun _S()
-        println("Destroyed")
+    {
+        free(data)
+        println("Destroyed. Size: ", size)
+    }
 
-    var name
+    fun add(var a)
+    {
+        size++
+        data = realloc(data, size)
+        data[size - 1] = a
+    }
+
+    var data
+    var size
 }
 
-fun printNames(var s, var sPtr)
+fun printData(var s, var sPtr)
 {
-    println("s.name: ", s.name)
-    println("sPtr.name: ", $sPtr.name)
-    println("End of printNames")
+    for(var i; i < s.size; i++)
+    {
+        println("s.data[", i, "]: ", s.data[i])
+        println("sPtr.data[", i, "]: ", $sPtr.data[i])
+    }
+    println("End of printData")
 }
 
 fun main()
 {
-    var s = S("Hello")
+    var s = S()
     var sPtr = $s
 
-    printNames(s, sPtr)
+    var a = 5
+
+    for(var i = 0; i < 5; i++)
+        s.add(a + i)
+
+    printData(s, sPtr)
     println("End of main")
 }
