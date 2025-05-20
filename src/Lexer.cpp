@@ -45,6 +45,7 @@ void Lexer::Tokenize()
             {
                 Lexer importLexer(tokens.back().second);
 
+                tokens.reserve(tokens.size() + importLexer.tokens.size());
                 tokens.insert(tokens.end(), importLexer.tokens.begin(), importLexer.tokens.end());
 
                 importFilename = false;

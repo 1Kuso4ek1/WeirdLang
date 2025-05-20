@@ -1,25 +1,23 @@
 import "include/vector.wrd"
 
-fun printData(var s, var sPtr)
+fun printVector(var v)
 {
-    for(var i; i < s.size; i++)
-    {
-        println("s.data[", i, "]: ", s.data[i])
-        println("sPtr.data[", i, "]: ", $sPtr.data[i])
-    }
-    println("End of printData")
+    for(var i; i < v.size; i++)
+        println("[", i, "]: ", v.data[i])
+}
+
+fun testVector(var size)
+{
+    var s = vector()
+
+    for(var i = 1; i <= size; i++)
+        s.add(i * 15)
+
+    printVector(s)
 }
 
 fun main()
 {
-    var s = vector()
-    var sPtr = $s
-
-    var a = 5
-
-    for(var i = 0; i < 5; i++)
-        s.add(a + i)
-
-    printData(s, sPtr)
-    println("End of main")
+    testVector(5)
+    testVector(10) # this will crash, all because of the VariableDecl!!! #
 }

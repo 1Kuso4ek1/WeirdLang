@@ -14,8 +14,7 @@ struct vector
 
     fun add(var a)
     {
-        size++
-        data = realloc(data, size)
+        data = realloc(data, ++size)
         data[size - 1] = a
     }
 
