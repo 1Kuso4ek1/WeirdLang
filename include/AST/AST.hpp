@@ -38,10 +38,7 @@ struct VariableExpr final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        if(cached.expired())
-            cached = scope->Get(name)->Evaluate(scope);
-
-        return cached.lock();
+        return scope->Get(name)->Evaluate(scope);
     }
 
     std::weak_ptr<Value> cached;
@@ -56,22 +53,17 @@ struct VariableDecl final : ExprNode
 
     ValuePtr Evaluate(const ScopePtr scope) override
     {
-        if(!value)
-            return cached.lock();
-
-        const auto evaluated = value->Evaluate(scope);
+        const auto evaluated = value->Clone(scope)->Evaluate(scope);
 
         if(scope)
-            scope->Declare(name, /*name == "this" ? value->Clone(scope) : */std::move(value));
-
-        cached = evaluated;
+            scope->Declare(name, /*name == "this" ? value->Clone(scope) : */std::make_shared<ValueExpr>(evaluated));
 
         return evaluated;
     }
 
     ExprPtr Clone(const ScopePtr scope) const override
     {
-        return std::make_shared<VariableDecl>(name, std::make_shared<ValueExpr>(value->Evaluate(scope)));
+        return std::make_shared<ValueExpr>(value->Clone(scope)->Evaluate(scope));
     }
 
     std::string name;
@@ -259,7 +251,7 @@ struct ConstructorExpr final : ExprNode
             auto instance = std::make_shared<StructInstance>(name, newScope);
 
             newScope->Declare("this",
-                std::make_shared<VariableDecl>("this", std::make_shared<ValueExpr>(std::weak_ptr(instance)))
+                std::make_shared<ValueExpr>(std::weak_ptr(instance))
             );
 
             if(structDecl->content.contains(name))
@@ -283,7 +275,7 @@ struct ConstructorExpr final : ExprNode
                 }
             }
 
-            return std::make_shared<Value>(std::any{ instance });
+            return std::make_shared<Value>(instance);
         }
 
         throw std::runtime_error(std::format("Symbol '{}' is not a struct", name));
@@ -470,14 +462,7 @@ struct UnaryExpr final : ExprNode
     {
         using namespace ValueOp;
 
-        ValuePtr val;
-
-        if(dynamic_cast<VariableExpr*>(expr.get())
-            || dynamic_cast<VariableDecl*>(expr.get())
-            || dynamic_cast<ValueExpr*>(expr.get()))
-            val = cachedExpr ? cachedExpr : cachedExpr = expr->Evaluate(scope);
-        else
-            val = expr->Evaluate(scope);
+        auto val = expr->Evaluate(scope);
 
         ValuePtr oldValue{};
 
@@ -564,30 +549,8 @@ struct BinaryExpr final : ExprNode
             throw std::runtime_error("Dot operator can only be used on structs");
         }
 
-        ValuePtr l, r;
-
-        // TODO: Review
-        if(dynamic_cast<VariableExpr*>(left.get())
-            || dynamic_cast<VariableDecl*>(left.get())
-            || dynamic_cast<ValueExpr*>(left.get()))
-        {
-            if(cachedLeft.expired())
-                cachedLeft = left->Evaluate(scope);
-            l = cachedLeft.lock();
-        }
-        else
-            l = left->Evaluate(scope);
-
-        if(dynamic_cast<VariableExpr*>(right.get())
-            || dynamic_cast<VariableDecl*>(right.get())
-            || dynamic_cast<ValueExpr*>(right.get()))
-        {
-            if(cachedRight.expired())
-                cachedRight = right->Evaluate(scope);
-            r = cachedRight.lock();
-        }
-        else
-            r = right->Evaluate(scope);
+        auto l = left->Evaluate(scope);
+        const auto r = right->Evaluate(scope);
 
         using namespace ValueOp;
 

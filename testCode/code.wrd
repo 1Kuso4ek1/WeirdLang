@@ -19,5 +19,5 @@ fun testVector(var size)
 fun main()
 {
     testVector(5)
-    testVector(10) # this will crash, all because of the VariableDecl!!! #
+    testVector(10)
 }
