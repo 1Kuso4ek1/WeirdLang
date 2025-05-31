@@ -2,22 +2,31 @@ struct vector
 {
     fun vector()
     {
-        data = alloc(0)
+        size = 0
+        capacity = 1
+
+        data = alloc(capacity)
+
         println("Constructed")
     }
 
     fun _vector()
     {
         free(data)
-        println("Destroyed. Size: ", size)
+        println("Destroyed. Size: ", size, ", Capacity: ", capacity)
     }
 
     fun add(var a)
     {
-        data = realloc(data, ++size)
-        data[size - 1] = a
+        if(size >= capacity)
+        {
+            capacity *= 2
+            data = realloc(data, capacity / 2, capacity)
+        }
+        data[size++] = a
     }
 
     var data
     var size
+    var capacity
 }

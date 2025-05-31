@@ -26,15 +26,15 @@ struct string
 
     fun assign(var str)
     {
-        var size = strlen(str)
-        data = realloc(data, size + 1)
+        var size = strlen(str) + 1
+        data = realloc(data, size - 1, size)
         for(var i; i < size; i++)
             data[i] = str[i]
     }
 
     fun size()
     {
-        return strlen(data)
+        strlen(data)
     }
 
     var data

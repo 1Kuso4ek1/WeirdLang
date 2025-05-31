@@ -89,22 +89,42 @@ inline void DefineDefaultFunctions()
             if(args.empty())
                 throw std::runtime_error("Not enough arguments");
 
-            return std::make_shared<Value>(reinterpret_cast<size_t>(malloc(std::get<int>(*args[0]) * sizeof(Value))));
+            const auto size = std::get<int>(*args[0]);
+            if(size <= 0)
+                throw std::runtime_error("Invalid allocation size");
+
+            auto ptr = static_cast<Value*>(calloc(size, sizeof(Value)));
+            if(!ptr)
+                throw std::runtime_error("Memory allocation failed");
+
+            for(int i = 0; i < size; i++)
+                new (&ptr[i]) Value(0);
+
+            return std::make_shared<Value>(reinterpret_cast<size_t>(ptr));
         });
 
     globalScope->Get("realloc") =
         std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
-            if(args.size() < 2)
+            if(args.size() < 3)
                 throw std::runtime_error("Not enough arguments");
 
-            return std::make_shared<Value>(
-                reinterpret_cast<size_t>(
-                    realloc(
-                        reinterpret_cast<void*>(std::get<size_t>(*args[0])),
-                        std::get<int>(*args[1]) * sizeof(Value)
-                    )
-                ));
+            const auto addr = std::get<size_t>(*args[0]);
+            const auto ptr = reinterpret_cast<Value*>(addr);
+            const auto oldSize = std::get<int>(*args[1]);
+            const auto size = std::get<int>(*args[2]);
+
+            if(size <= 0)
+                throw std::runtime_error("Invalid reallocation size");
+
+            auto ret = static_cast<Value*>(realloc(ptr, size * sizeof(Value)));
+            if(!ret)
+                throw std::runtime_error("Memory reallocation failed");
+
+            for(int i = oldSize; i < size; i++)
+                new (&ret[i]) Value(0);
+
+            return std::make_shared<Value>(reinterpret_cast<size_t>(ret));
         });
 
     globalScope->Get("free") =

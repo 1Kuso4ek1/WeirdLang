@@ -35,7 +35,8 @@ fun testString()
     var str = string()
     str.assign("amogus")
 
-    println(str.data)
+    println("String data: ", str.data)
+    println("String size: ", str.size())
 }
 
 fun main()
