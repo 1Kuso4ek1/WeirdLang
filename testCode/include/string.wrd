@@ -1,0 +1,41 @@
+# C-style string utilities #
+
+fun strlen(var str)
+{
+    var counter
+    var it = str
+
+    while(it[counter] != '\0') counter++
+
+    return counter
+}
+
+struct string
+{
+    fun string()
+    {
+        data = alloc(1)
+        data[0] = '\0'
+    }
+
+    fun _string()
+    {
+        free(data)
+        println("Memory freed")
+    }
+
+    fun assign(var str)
+    {
+        var size = strlen(str)
+        data = realloc(data, size + 1)
+        for(var i; i < size; i++)
+            data[i] = str[i]
+    }
+
+    fun size()
+    {
+        return strlen(data)
+    }
+
+    var data
+}

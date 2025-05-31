@@ -1,6 +1,8 @@
+import "include/string.wrd"
+
 fun testAlloc()
 {
-    var allocated = alloc(8)
+    var allocated = alloc(7)
 
     allocated[0] = 'a'
     allocated[1] = 'm'
@@ -22,8 +24,24 @@ fun testConst()
     println(const)
 }
 
+fun testStrlen()
+{
+    assert(strlen("amogus") == 6)
+    println("strlen test passed")
+}
+
+fun testString()
+{
+    var str = string()
+    str.assign("amogus")
+
+    println(str.data)
+}
+
 fun main()
 {
     testAlloc()
     testConst()
+    testStrlen()
+    testString()
 }

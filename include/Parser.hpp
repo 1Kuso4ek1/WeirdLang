@@ -59,6 +59,7 @@ private:
         { Lexer::TokenType::BitwiseOr, 2 },
         { Lexer::TokenType::BitwiseXor, 2 },
         { Lexer::TokenType::IsEqual, 2 },
+        { Lexer::TokenType::NotEqual, 2 },
         { Lexer::TokenType::Less, 2 },
         { Lexer::TokenType::Greater, 2 },
         { Lexer::TokenType::LessEqual, 2 },

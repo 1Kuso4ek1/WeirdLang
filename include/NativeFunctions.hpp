@@ -20,11 +20,10 @@ inline void DeclareDefaultFunctions()
     globalScope->Declare("print", std::make_shared<UndefinedExpr>());
     globalScope->Declare("println", std::make_shared<UndefinedExpr>());
     globalScope->Declare("input", std::make_shared<UndefinedExpr>());
-    globalScope->Declare("strcpy", std::make_shared<UndefinedExpr>());
-    globalScope->Declare("strlen", std::make_shared<UndefinedExpr>());
     globalScope->Declare("alloc", std::make_shared<UndefinedExpr>());
     globalScope->Declare("realloc", std::make_shared<UndefinedExpr>());
     globalScope->Declare("free", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("assert", std::make_shared<UndefinedExpr>());
 
     // Structures
     globalScope->Declare("array", std::make_shared<StructDecl>("array"));
@@ -84,31 +83,6 @@ inline void DefineDefaultFunctions()
             return std::make_shared<Value>(input);
         });
 
-    globalScope->Get("strcpy") =
-        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
-        {
-            if(args.size() < 2)
-                throw std::runtime_error("Not enough arguments");
-
-            const auto dst = reinterpret_cast<char*>(std::get<size_t>(*args[0]));
-            const auto src = reinterpret_cast<char*>(std::get<size_t>(*args[1]));
-
-            std::strcpy(dst, src);
-
-            return nullptr;
-        });
-
-    globalScope->Get("strlen") =
-        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
-        {
-            if(args.empty())
-                throw std::runtime_error("Not enough arguments");
-
-            const auto str = reinterpret_cast<char*>(std::get<size_t>(*args[0]));
-
-            return std::make_shared<Value>(static_cast<int>(std::strlen(str)));
-        });
-
     globalScope->Get("alloc") =
         std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
         {
@@ -140,6 +114,18 @@ inline void DefineDefaultFunctions()
                 throw std::runtime_error("Not enough arguments");
 
             free(reinterpret_cast<void*>(std::get<size_t>(*args[0])));
+
+            return nullptr;
+        });
+
+    globalScope->Get("assert") =
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        {
+            if(args.empty())
+                throw std::runtime_error("Not enough arguments");
+
+            if(!std::get<bool>(*args[0]))
+                throw std::runtime_error("Assertion failed");
 
             return nullptr;
         });
