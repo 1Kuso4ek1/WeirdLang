@@ -1,0 +1,12 @@
+fun main()
+{
+    var str = "amogus"
+    var allocated = alloc(strlen(str))
+
+    strcpy(allocated, str)
+
+    println(str)
+    println(allocated)
+
+    free(allocated)
+}

@@ -3,7 +3,7 @@
 #include <memory>
 #include <variant>
 
-using Value = std::variant<int, size_t, float, double, bool, std::string, std::any>;
+using Value = std::variant<int, size_t, float, double, bool, char, std::any>;
 using ValuePtr = std::shared_ptr<Value>;
 
 namespace ValueOp

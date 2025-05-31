@@ -51,6 +51,7 @@ ExprPtr Parser::ParsePrimary()
     case Lexer::TokenType::Identifier: return ParseIdentifier();
     case Lexer::TokenType::Number: return ParseNumber();
     case Lexer::TokenType::String: return ParseString();
+    case Lexer::TokenType::Char: return ParseChar();
     case Lexer::TokenType::Semicolon: NextToken(); break;
 
     case Lexer::TokenType::Arrow:
@@ -215,7 +216,20 @@ ExprPtr Parser::ParseString()
     const auto value = currentToken.second;
     NextToken();
 
-    return std::make_shared<ValueExpr>(value);
+    const auto data = std::make_shared<char[]>(value.size() + 1);
+    value.copy(data.get(), value.size());
+
+    dataSection.emplace_back(data);
+
+    return std::make_shared<ValueExpr>(reinterpret_cast<size_t>(data.get()));
+}
+
+ExprPtr Parser::ParseChar()
+{
+    auto value = currentToken.second;
+    NextToken();
+
+    return std::make_shared<ValueExpr>(value[1]);
 }
 
 ExprPtr Parser::ParseStatementList(const bool singleExpr)

@@ -25,6 +25,7 @@ private:
     ExprPtr ParseIdentifier();
     ExprPtr ParseNumber();
     ExprPtr ParseString();
+    ExprPtr ParseChar();
     ExprPtr ParseStatementList(bool singleExpr = false);
     ExprPtr ParseVarOrFunc(const std::string& token);
     ExprPtr ParseIf();
@@ -68,6 +69,8 @@ private:
 
 private:
     Lexer& lexer;
+
+    std::vector<std::shared_ptr<char[]>> dataSection;
 
     Lexer::Token currentToken;
     ExprPtr root{};

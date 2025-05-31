@@ -16,7 +16,7 @@ class Lexer
 public:
     enum class TokenType
     {
-        None, Reserved, Identifier, Number, Bool, String,
+        None, Reserved, Identifier, Number, Bool, Char, String,
         Plus, Minus, Multiply, Divide, Modulo, Equal,
         Semicolon, Comma, Dot,
         AddAssign, SubAssign, MulAssign, DivAssign, ModAssign,
@@ -47,6 +47,8 @@ private:
 
 private:
     static std::string LoadCode(const std::filesystem::path& path);
+
+    static char ProcessChar(StringIter& iter);
 
 private:
     const std::vector<std::string_view> reservedWords =
@@ -121,6 +123,7 @@ const static std::unordered_map<Lexer::TokenType, std::string_view> tokenTypeMap
     { Lexer::TokenType::Identifier, "Identifier"sv },
     { Lexer::TokenType::Number, "Number"sv },
     { Lexer::TokenType::Bool, "Bool"sv },
+    { Lexer::TokenType::Char, "Char"sv },
     { Lexer::TokenType::String, "String"sv },
     { Lexer::TokenType::Plus, "Plus"sv },
     { Lexer::TokenType::Minus, "Minus"sv },

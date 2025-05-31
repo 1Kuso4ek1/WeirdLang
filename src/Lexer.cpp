@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <ranges>
+#include <print>
 
 Lexer::Lexer(const std::filesystem::path& path)
     : code(LoadCode(path))
@@ -40,7 +41,7 @@ void Lexer::Tokenize()
             tokens.emplace_back(ProcessNumber(i));
         else if(*i == '"')
         {
-            tokens.emplace_back(ProcessString(++i));
+            tokens.emplace_back(ProcessString(i));
             if(importFilename)
             {
                 Lexer importLexer(tokens.back().second);
@@ -51,6 +52,11 @@ void Lexer::Tokenize()
                 importFilename = false;
                 tokens.pop_back();
             }
+        }
+        else if(*i == '\'')
+        {
+            tokens.emplace_back(Token{ TokenType::Char, { 1, ProcessChar(++i) } });
+            i += 1;
         }
         else
             tokens.emplace_back(ProcessOperator(i));
@@ -99,8 +105,8 @@ Lexer::Token Lexer::ProcessString(StringIter& iter)
 {
     auto value = ""s;
 
-    while(*iter != '"')
-        value += *iter++;
+    while(*++iter != '"')
+        value.append(1, ProcessChar(iter));
 
     return { TokenType::String, value };
 }
@@ -146,4 +152,26 @@ std::string Lexer::LoadCode(const std::filesystem::path& path)
     );
 
     return code;
+}
+
+char Lexer::ProcessChar(StringIter& iter)
+{
+    if(*iter == '\\')
+    {
+        switch(*++iter)
+        {
+        case 'n': return '\n';
+        case 't': return '\t';
+        case 'r': return '\r';
+        case 'b': return '\b';
+        case 'f': return '\f';
+        case '0': return '\0';
+        case '\'': return '\'';
+        case '\"': return '\"';
+        case '\\': return '\\';
+        default: return *iter;
+        }
+    }
+
+    return *iter;
 }

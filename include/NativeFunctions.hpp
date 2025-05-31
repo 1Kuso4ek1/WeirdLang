@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include <iostream>
 #include <print>
 
@@ -19,6 +20,8 @@ inline void DeclareDefaultFunctions()
     globalScope->Declare("print", std::make_shared<UndefinedExpr>());
     globalScope->Declare("println", std::make_shared<UndefinedExpr>());
     globalScope->Declare("input", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("strcpy", std::make_shared<UndefinedExpr>());
+    globalScope->Declare("strlen", std::make_shared<UndefinedExpr>());
     globalScope->Declare("alloc", std::make_shared<UndefinedExpr>());
     globalScope->Declare("realloc", std::make_shared<UndefinedExpr>());
     globalScope->Declare("free", std::make_shared<UndefinedExpr>());
@@ -35,8 +38,12 @@ inline void DefineDefaultFunctions()
             for(const auto& arg : args)
                 std::visit([](auto&& v)
                 {
-                    if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(v)>, size_t>)
+                        std::print("{}", reinterpret_cast<const char*>(v));
+                    else if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
                         std::print("{}", v);
+                    else
+                        std::print("Non printable");
                 }, *arg);
 
             return nullptr;
@@ -48,8 +55,12 @@ inline void DefineDefaultFunctions()
             for(const auto& arg : args)
                 std::visit([](auto&& v)
                 {
-                    if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
+                    if constexpr (std::is_same_v<std::decay_t<decltype(v)>, size_t>)
+                        std::print("{}", reinterpret_cast<const char*>(v));
+                    else if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
                         std::print("{}", v);
+                    else
+                        std::print("Non printable");
                 }, *arg);
 
             std::println("");
@@ -64,6 +75,31 @@ inline void DefineDefaultFunctions()
             std::getline(std::cin, input);
 
             return std::make_shared<Value>(input);
+        });
+
+    globalScope->Get("strcpy") =
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        {
+            if(args.size() < 2)
+                throw std::runtime_error("Not enough arguments");
+
+            const auto dst = reinterpret_cast<char*>(std::get<size_t>(*args[0]));
+            const auto src = reinterpret_cast<char*>(std::get<size_t>(*args[1]));
+
+            std::strcpy(dst, src);
+
+            return nullptr;
+        });
+
+    globalScope->Get("strlen") =
+        std::make_shared<StatementList>([](const std::vector<ValuePtr>& args, const auto&) -> ValuePtr
+        {
+            if(args.empty())
+                throw std::runtime_error("Not enough arguments");
+
+            const auto str = reinterpret_cast<char*>(std::get<size_t>(*args[0]));
+
+            return std::make_shared<Value>(static_cast<int>(std::strlen(str)));
         });
 
     globalScope->Get("alloc") =

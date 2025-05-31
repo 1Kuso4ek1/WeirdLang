@@ -441,7 +441,7 @@ struct IndexExpr final : ExprNode
             const int idx = std::get<int>(*indexValue);
 
             const auto base = std::get<size_t>(*ptrValue);
-            const auto element = base + (idx * sizeof(Value));
+            const auto element = base + idx * sizeof(Value);
 
             return { reinterpret_cast<Value*>(element), [](Value*) {} };
         }
