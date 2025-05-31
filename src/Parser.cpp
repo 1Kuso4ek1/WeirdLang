@@ -216,12 +216,16 @@ ExprPtr Parser::ParseString()
     const auto value = currentToken.second;
     NextToken();
 
-    const auto data = std::make_shared<char[]>(value.size() + 1);
-    value.copy(data.get(), value.size());
+    std::vector<Value> data;
+    data.reserve(value.size() + 1);
 
-    dataSection.emplace_back(data);
+    for(const char i : value)
+        data.emplace_back(i);
+    data.emplace_back('\0');
 
-    return std::make_shared<ValueExpr>(reinterpret_cast<size_t>(data.get()));
+    dataSection.emplace_back(std::move(data));
+
+    return std::make_shared<ValueExpr>(reinterpret_cast<size_t>(dataSection.back().data()));
 }
 
 ExprPtr Parser::ParseChar()

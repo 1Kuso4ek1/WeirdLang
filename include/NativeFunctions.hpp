@@ -56,7 +56,14 @@ inline void DefineDefaultFunctions()
                 std::visit([](auto&& v)
                 {
                     if constexpr (std::is_same_v<std::decay_t<decltype(v)>, size_t>)
-                        std::print("{}", reinterpret_cast<const char*>(v));
+                    {
+                        auto pos = v;
+                        while(*reinterpret_cast<char*>(pos) != '\0')
+                        {
+                            std::print("{}", *reinterpret_cast<char*>(pos));
+                            pos += sizeof(Value);
+                        }
+                    }
                     else if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::any>)
                         std::print("{}", v);
                     else

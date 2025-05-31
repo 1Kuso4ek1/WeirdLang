@@ -70,7 +70,7 @@ private:
 private:
     Lexer& lexer;
 
-    std::vector<std::shared_ptr<char[]>> dataSection;
+    std::vector<std::vector<Value>> dataSection;
 
     Lexer::Token currentToken;
     ExprPtr root{};

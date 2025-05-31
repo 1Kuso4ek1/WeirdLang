@@ -1,12 +1,29 @@
-fun main()
+fun testAlloc()
 {
-    var str = "amogus"
-    var allocated = alloc(strlen(str))
+    var allocated = alloc(8)
 
-    strcpy(allocated, str)
+    allocated[0] = 'a'
+    allocated[1] = 'm'
+    allocated[2] = 'o'
+    allocated[3] = 'g'
+    allocated[4] = 'u'
+    allocated[5] = 's'
+    allocated[6] = '\0'
 
-    println(str)
     println(allocated)
 
     free(allocated)
+}
+
+fun testConst()
+{
+    var const = "amogus"
+
+    println(const)
+}
+
+fun main()
+{
+    testAlloc()
+    testConst()
 }
